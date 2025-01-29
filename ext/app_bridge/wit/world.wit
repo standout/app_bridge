@@ -1,0 +1,9 @@
+package standout:app@0.1.0;
+
+interface triggers {
+  get-triggers: func() -> list<string>;
+}
+
+world bridge {
+  export triggers;
+}

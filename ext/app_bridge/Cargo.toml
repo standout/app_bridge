@@ -13,3 +13,5 @@ magnus = { version = "0.6.2" }
 anyhow = "1.0.95"
 wasmtime = "29.0.1"
 wasmtime-wasi = "29.0.1"
+wasmtime-cli = "29.0.1"
+wasmtime-component-util = "29.0.1"

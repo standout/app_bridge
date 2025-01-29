@@ -8,7 +8,7 @@ RSpec.describe AppBridge do
   end
 
   describe "AppBridge::App" do
-    let(:component_path) { File.join(components_path, "fortnox_app.wasm") }
+    let(:component_path) { File.join(components_path, "example_app.wasm") }
 
     subject(:app) { AppBridge::App.new(component_path) }
 
