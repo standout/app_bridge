@@ -1,4 +1,10 @@
 module AppBridge
   VERSION: String
   # See the writing guide of rbs: https://github.com/ruby/rbs#guides
+
+  class App
+    def initialize: (String) -> void
+
+    def triggers : () -> Array[String]
+  end
 end

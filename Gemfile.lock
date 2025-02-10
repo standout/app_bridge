@@ -8,6 +8,9 @@ GEM
   remote: https://rubygems.org/
   specs:
     ast (2.4.2)
+    benchmark-malloc (0.2.0)
+    benchmark-perf (0.6.0)
+    benchmark-trend (0.4.0)
     diff-lcs (1.5.1)
     json (2.9.1)
     language_server-protocol (3.17.0.4)
@@ -26,6 +29,11 @@ GEM
       rspec-core (~> 3.13.0)
       rspec-expectations (~> 3.13.0)
       rspec-mocks (~> 3.13.0)
+    rspec-benchmark (0.6.0)
+      benchmark-malloc (~> 0.2)
+      benchmark-perf (~> 0.6)
+      benchmark-trend (~> 0.4)
+      rspec (>= 3.0)
     rspec-core (3.13.2)
       rspec-support (~> 3.13.0)
     rspec-expectations (3.13.3)
@@ -61,6 +69,7 @@ DEPENDENCIES
   rake (~> 13.0)
   rake-compiler
   rspec (~> 3.0)
+  rspec-benchmark
   rubocop (~> 1.21)
 
 BUNDLED WITH

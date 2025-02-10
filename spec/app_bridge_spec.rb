@@ -8,7 +8,7 @@ RSpec.describe AppBridge do
   end
 
   describe "AppBridge::App" do
-    let(:component_path) { File.join(components_path, "example_app.wasm") }
+    let(:component_path) { File.join(components_path, "fortnox_app.wasm") }
 
     subject(:app) { AppBridge::App.new(component_path) }
 
@@ -18,8 +18,12 @@ RSpec.describe AppBridge do
 
     describe "#get_triggers" do
       it "should return an array of trigger ids" do
-        expect(app.get_triggers).to be_a(Array)
+        expect(app.triggers).to be_a(Array)
           .and include("new-invoice-payment", "new-invoice")
+      end
+
+      it "must perform the operation in less than 10 milliseconds" do
+        expect { app.triggers }.to perform_under(10).ms
       end
     end
   end
