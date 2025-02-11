@@ -13,5 +13,8 @@
 mkmf.log
 target/
 
+# Ignore all the build artifacts for WASM example components
+spec/fixtures/components/*.wasm
+
 # rspec failure tracking
 .rspec_status

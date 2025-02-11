@@ -19,4 +19,7 @@ RbSys::ExtensionTask.new("app_bridge", GEMSPEC) do |ext|
   ext.lib_dir = "lib/app_bridge"
 end
 
-task default: %i[compile spec rubocop]
+# Load all project specific rake tasks
+Dir.glob(File.expand_path("tasks/**/*.rake", __dir__)).each { |file| load file }
+
+task default: %i[fixtures compile spec rubocop]
