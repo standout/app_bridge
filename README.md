@@ -1,35 +1,73 @@
-# AppBridge
+# Standout App Bridge
 
-TODO: Delete this and the text below, and describe your gem
-
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/app_bridge`. To experiment with that code, run `bin/console` for an interactive prompt.
+`app_bridge` is a Ruby gem designed to facilitate communication with WebAssembly components that implement the WIT specification `standout:app`. This gem is developed for use in Standout's products.
 
 ## Installation
 
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
+Add the following line to your `Gemfile`:
 
-Install the gem and add to the application's Gemfile by executing:
-
-```bash
-bundle add UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+```ruby
+gem 'app_bridge', github: 'standout/app_bridge'
 ```
 
-If bundler is not being used to manage dependencies, install the gem by executing:
+Then, install the gem by running:
 
 ```bash
-gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+bundle install
 ```
 
 ## Usage
 
-TODO: Write usage instructions here
+To use this gem, you need a WebAssembly component that adheres to the specification defined in `ext/app_bridge/wit/world.wit`.
+
+You can check out the example components in `spec/fixtures/components` to see how such a component should be structured.
+
+Once you have a WebAssembly component, you can use the gem as follows:
+
+```ruby
+require 'app_bridge'
+
+app = AppBridge::App.new('path/to/your/component.wasm')
+app.triggers # => ['trigger1', 'trigger2']
+```
+
+More documentation and features will be added as the gem evolves.
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+To contribute or modify this gem, ensure you have the following dependencies installed:
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+- **Ruby 3.3.0** (or later)
+- **Rust 1.84.0** (or later)
 
-## Contributing
+### Setting Up the Development Environment
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/app_bridge.
+Run the following command to setup and install additional dependencies:
+
+```bash
+bin/setup
+```
+
+Then, to compile example applications, run tests, and perform syntax checks, execute:
+
+```bash
+rake
+```
+
+### Useful Commands
+
+- **Interactive Console:** Run `bin/console` to interactively test the code.
+- **Full Test Suite & Linting:** Run `rake` to compile, execute tests, and perform syntax checks.
+- **Run Tests Only:** Execute `rake spec` to run only the test suite.
+- **Linting:** Run `rake rubocop` to check code style and formatting.
+- **Compile Example Applications:** Use `rake fixtures` to build the example apps.
+
+To install this gem locally for testing purposes, run:
+
+```bash
+bundle exec rake install
+```
+
+## Release & Distribution
+
+This gem is **not** published to RubyGems. It is intended for internal use within Standout's products only.
