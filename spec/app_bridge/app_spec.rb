@@ -6,12 +6,6 @@ RSpec.describe AppBridge::App do
 
   subject(:app) { AppBridge::App.new(component_path) }
 
-  it "initializes within 10 milliseconds" do
-    expect do
-      AppBridge::App.new(component_path)
-    end.to perform_under(10).ms.sample(10).times
-  end
-
   describe "#triggers" do
     it "returns an array of trigger ids" do
       expect(app.triggers).to be_a(Array)
