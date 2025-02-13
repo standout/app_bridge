@@ -13,3 +13,5 @@ gem "rspec", "~> 3.0"
 gem "rspec-benchmark"
 
 gem "rubocop", "~> 1.21"
+
+gem "json"

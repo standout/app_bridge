@@ -1,7 +1,104 @@
-package standout:app@0.1.0;
+package standout:app@0.2.0;
+
+interface types {
+  // The trigger-store is a string that is used to store data between trigger
+  // invocations. It is unique per trigger instance and is persisted between
+  // invocations.
+  //
+  // You can store any string here. We suggest that you use a serialized
+  // JSON object or similar since that will give you some flexibility if you
+  // need to add more data to the store.
+  type trigger-store = string;
+
+  record account {
+    id: string,
+    name: string,
+    // The account data is a JSON object serialized into a string. The JSON root
+    // will always be an object.
+    serialized-data: string,
+  }
+
+  record trigger-context {
+    // Trigger ID is a unique identifier for the trigger that is requested to be
+    // invoked.
+    trigger-id: string,
+
+    // The account that the trigger is invoked for.
+    account: account,
+
+    // The store will contain the data that was stored in the trigger store the
+    // last time the trigger was invoked.
+    store: trigger-store,
+  }
+
+  record trigger-response {
+    // The trigger events, each event will be used to spawn a new workflow
+    // execution in Standouts integration plattform.
+    events: list<trigger-event>,
+
+    // The updated store will be stored and used the next time the trigger is
+    // invoked.
+    store: trigger-store,
+  }
+
+  record trigger-event {
+    // The ID of the trigger event
+    //
+    // If the account used for the given instance of the trigger is the same,
+    // as seen before. Then the event will be ignored.
+    //
+    // A scheduler could therefore use an timestamp as the ID, to ensure that
+    // the event is only triggered once per given time.
+    //
+    // A trigger that acts on created orders in a e-commerce system could use
+    // the order ID as the ID, to ensure that the event is only triggered once
+    // per order.
+    //
+    // A trigger that acts on updated orders in a e-commerce system could use
+    // the order ID in combination with an updated at timestamp as the ID, to
+    // ensure that the event is only triggered once per order update.
+    id: string,
+
+    // The timestamp of the event.
+    // Must be a unix timestamp in milliseconds since epoch (UTC).
+    // In JavaScript `Date.now()` can be used to get the current timestamp in
+    // milliseconds.
+    timestamp: u64,
+
+    // Serialized data must be a JSON object serialized into a string
+    // Note that it is important that the root is a object, not an array,
+    // or another primitive type.
+    serialized-data: string,
+  }
+}
+
 
 interface triggers {
+  use types.{trigger-context, trigger-event, trigger-response};
+
   get-triggers: func() -> list<string>;
+
+  // Fetch events
+  //
+  // There are some limitations to the function:
+  // - It must return within 30 seconds
+  // - It must return less than or equal to 100 events
+  //
+  // If you need to fetch more events, you can return up to 100 events and then
+  // store the data needed for you to remember where you left off in the store.
+  // The next time the trigger is invoked, you can use the store to continue
+  // where you left off.
+  //
+  // If you do not pass the limitations the return value will be ignored. We
+  // will not handle any events and we persist the store that was returned in
+  // the response.
+  //
+  // That also means that you should implement your fetch event function in a
+  // way that it can be called multiple times using the same context and return
+  // the same events. That will ensure that the user that is building an
+  // integration with your trigger will not miss any events if your system is
+  // down for a short period of time.
+  fetch-events: func(context: trigger-context) -> trigger-response;
 }
 
 world bridge {

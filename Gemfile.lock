@@ -66,6 +66,7 @@ PLATFORMS
 
 DEPENDENCIES
   app_bridge!
+  json
   rake (~> 13.0)
   rake-compiler
   rspec (~> 3.0)
