@@ -1,6 +1,5 @@
 use standout::app::types::{TriggerEvent, TriggerResponse};
 use wit_bindgen::generate;
-use core::time;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 generate!({
