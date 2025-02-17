@@ -9,3 +9,4 @@ crate-type = ["cdylib"]
 [dependencies]
 # https://crates.io/crates/wit-bindgen
 wit-bindgen = "0.38"
+serde_json = "1.0.138"

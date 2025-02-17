@@ -1,4 +1,4 @@
-package standout:app@0.2.0;
+package standout:app@0.3.0;
 
 interface types {
   // The trigger-store is a string that is used to store data between trigger
@@ -101,6 +101,30 @@ interface triggers {
   fetch-events: func(context: trigger-context) -> trigger-response;
 }
 
+interface http {
+  variant method {
+    get,
+    post,
+    put,
+    delete,
+    patch,
+    options,
+    head,
+  }
+
+  type headers = list<tuple<string, string>>;
+
+  variant optional-headers {
+    none,
+    some(headers),
+  }
+
+  // TODO: Add more options
+  // headers, method, body, etc.
+  request: func(method: method, url: string, headers: optional-headers) -> result<string, string>;
+}
+
 world bridge {
+  import http;
   export triggers;
 }

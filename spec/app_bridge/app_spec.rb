@@ -24,7 +24,7 @@ RSpec.describe AppBridge::App do
   describe "#fetch_events(context)" do
     let(:context) do
       account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
-      AppBridge::TriggerContext.new("new-invoice-payment", account, "")
+      AppBridge::TriggerContext.new("new-invoice-payment", account, "world")
     end
 
     it "returns a response with new store" do
@@ -33,6 +33,15 @@ RSpec.describe AppBridge::App do
       expect(response.store).to be_a(String)
       expect(response.events).not_to be_empty
       expect(response.events).to all(be_a(AppBridge::TriggerEvent))
+    end
+
+    it "includes trigger events" do
+      response = app.fetch_events(context)
+      expect(response.events).to include(
+        have_attributes(id: "1", serialized_data: include("delectus aut autem")),
+        have_attributes(id: "2", serialized_data: include("quis ut nam facilis et officia qui")),
+        have_attributes(id: "3", serialized_data: include("fugiat veniam minus"))
+      )
     end
   end
 end

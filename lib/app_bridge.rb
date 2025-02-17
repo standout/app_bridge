@@ -9,7 +9,7 @@ module AppBridge
   # Represents a trigger event that is recieved from the app.
   class TriggerEvent
     def inspect
-      "#<AppBridge::TriggerEvent(id: #{object_id}, timestamp: #{Time.now}, " \
+      "#<AppBridge::TriggerEvent(id: #{id.inspect}, timestamp: #{timestamp.inspect}, " \
         "serialized_data: #{serialized_data.inspect})>"
     end
   end

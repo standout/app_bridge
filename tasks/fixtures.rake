@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "English"
+
 namespace :fixtures do
   namespace :apps do
     desc "Clean up build artifacts"
@@ -10,6 +12,7 @@ namespace :fixtures do
       pwd = "spec/fixtures/components/example"
       pid = Process.spawn("cargo clean", chdir: pwd)
       Process.wait(pid)
+      raise "Failed to clean build artifacts" unless $CHILD_STATUS.success?
 
       # Remove the built wasm artifact.
       pid = Process.spawn("rm example.wasm", chdir: "spec/fixtures/components")
@@ -22,6 +25,7 @@ namespace :fixtures do
       compile_pid = Process.spawn("cargo clean && cargo build --release --target wasm32-wasip2",
                                   chdir: pwd)
       Process.wait(compile_pid)
+      raise "Failed to build artifacts" unless $CHILD_STATUS.success?
 
       move_pid = Process.spawn("mv #{pwd}/target/wasm32-wasip2/release/example.wasm #{pwd}/../example.wasm")
       Process.wait(move_pid)
