@@ -102,6 +102,44 @@ interface triggers {
 }
 
 interface http {
+  record response {
+    status: u16,
+    headers: headers,
+    body: string,
+  }
+
+  record request {
+    method: method,
+    url: string,
+    headers: headers,
+    body: string,
+  }
+
+  variant request-error {
+    other(string)
+  }
+
+  type headers = list<tuple<string, string>>;
+
+  resource request-builder {
+    constructor();
+
+    method: func(method: method) -> request-builder;
+    url: func(url: string) -> request-builder;
+
+    // Add a header to the request
+    header: func(key: string, value: string) -> request-builder;
+    headers: func(headers: list<tuple<string, string>>) -> request-builder;
+
+    // Add a body to the request
+    body: func(body: string) -> request-builder;
+
+    object: func() -> request;
+
+    // Send the request
+    send: func() -> result<response, request-error>;
+  }
+
   variant method {
     get,
     post,
@@ -111,17 +149,6 @@ interface http {
     options,
     head,
   }
-
-  type headers = list<tuple<string, string>>;
-
-  variant optional-headers {
-    none,
-    some(headers),
-  }
-
-  // TODO: Add more options
-  // headers, method, body, etc.
-  request: func(method: method, url: string, headers: optional-headers) -> result<string, string>;
 }
 
 world bridge {

@@ -1,13 +1,28 @@
 use crate::{
-  standout::app::{http::{request, Method, OptionalHeaders}, types::{TriggerContext, TriggerResponse, TriggerEvent}},
-  date_utils::timestamp
+  date_utils::timestamp,
+  standout::app::{
+    http::{
+      Method,
+      RequestBuilder,
+    },
+    types::{
+      TriggerContext,
+      TriggerEvent,
+      TriggerResponse
+    }
+  }
 };
 use serde_json::Value;
 
 pub fn main(context: TriggerContext) -> TriggerResponse {
-  match request(Method::Get, "https://jsonplaceholder.typicode.com/todos", &OptionalHeaders::None) {
-    Ok(body) => {
-      let json_array: Vec<Value> = serde_json::from_str(&body).unwrap_or_else(|_| vec![]);
+
+  let response = RequestBuilder::new()
+    .method(Method::Get)
+    .url("https://jsonplaceholder.typicode.com/todos");
+
+  match response.send() {
+    Ok(response) => {
+      let json_array: Vec<Value> = serde_json::from_str(&response.body).unwrap_or_else(|_| vec![]);
       let events: Vec<TriggerEvent> = json_array.into_iter().map(|json_obj| {
         let id = json_obj["id"].to_string();
         let serialized_data = json_obj.to_string();

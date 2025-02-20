@@ -1,9 +1,13 @@
-use std::cell::RefCell;
 use magnus::{function, method, prelude::*, Error, RArray, Ruby, TryConvert, Value};
+use std::cell::RefCell;
 use wasmtime::Store;
+mod app_state;
 mod component;
-use component::{AppState, Bridge, build_linker, build_store, build_engine, app};
-use component::standout::app::types::{TriggerContext, TriggerResponse, Account, TriggerEvent};
+mod request_builder;
+
+use app_state::AppState;
+use component::standout::app::types::{Account, TriggerContext, TriggerEvent, TriggerResponse};
+use component::{app, build_engine, build_linker, build_store, Bridge};
 
 #[derive(Default)]
 pub struct RApp {
@@ -37,7 +41,10 @@ impl MutRApp {
         let mut store = binding.store.borrow_mut();
 
         if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
-            instance.standout_app_triggers().call_get_triggers(store).unwrap()
+            instance
+                .standout_app_triggers()
+                .call_get_triggers(store)
+                .unwrap()
         } else {
             vec![]
         }
@@ -50,7 +57,6 @@ impl MutRApp {
         RTriggerResponse::from_trigger_response(response)
     }
 
-
     fn fetch_events(&self, context: TriggerContext) -> TriggerResponse {
         let binding = self.0.borrow();
 
@@ -58,11 +64,14 @@ impl MutRApp {
         let mut store = binding.store.borrow_mut();
 
         if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
-            instance.standout_app_triggers().call_fetch_events(store, &context).unwrap()
+            instance
+                .standout_app_triggers()
+                .call_fetch_events(store, &context)
+                .unwrap()
         } else {
             TriggerResponse {
                 store: context.store,
-                events: vec![]
+                events: vec![],
             }
         }
     }
@@ -75,7 +84,11 @@ struct RAccount {
 
 impl RAccount {
     fn new(id: String, name: String, serialized_data: String) -> Self {
-        let inner = Account { id: id, name: name, serialized_data: serialized_data };
+        let inner = Account {
+            id: id,
+            name: name,
+            serialized_data: serialized_data,
+        };
         Self { inner }
     }
 
@@ -94,7 +107,9 @@ impl RAccount {
 
 impl Clone for RAccount {
     fn clone(&self) -> Self {
-        Self { inner: self.inner.clone() }
+        Self {
+            inner: self.inner.clone(),
+        }
     }
 }
 
@@ -104,7 +119,11 @@ impl TryConvert for RAccount {
         let name: String = val.funcall("name", ())?;
         let serialized_data: String = val.funcall("serialized_data", ())?;
 
-        let inner = Account { id, name, serialized_data };
+        let inner = Account {
+            id,
+            name,
+            serialized_data,
+        };
 
         Ok(Self { inner })
     }
@@ -120,13 +139,15 @@ impl RTriggerContext {
     fn new(trigger_id: String, account: Value, store: String) -> Self {
         let account: RAccount = TryConvert::try_convert(account).unwrap();
 
-
         let inner = TriggerContext {
             trigger_id: trigger_id,
             account: account.clone().inner,
-            store: store
+            store: store,
         };
-        Self { inner, wrapped_account: account.clone() }
+        Self {
+            inner,
+            wrapped_account: account.clone(),
+        }
     }
 
     fn trigger_id(&self) -> String {
@@ -153,10 +174,13 @@ impl TryConvert for RTriggerContext {
         let inner = TriggerContext {
             trigger_id: trigger_id,
             account: account.clone().inner,
-            store: store
+            store: store,
         };
 
-        Ok(Self { inner, wrapped_account: account.clone() })
+        Ok(Self {
+            inner,
+            wrapped_account: account.clone(),
+        })
     }
 }
 
@@ -169,12 +193,13 @@ impl RTriggerResponse {
     fn new(store: String, events: RArray) -> Self {
         let iter = events.into_iter();
         let res: Vec<RTriggerEvent> = iter
-          .map(&TryConvert::try_convert)
-          .collect::<Result<Vec<RTriggerEvent>, Error>>().unwrap();
+            .map(&TryConvert::try_convert)
+            .collect::<Result<Vec<RTriggerEvent>, Error>>()
+            .unwrap();
 
         let inner = TriggerResponse {
             store: store,
-            events: res.iter().map(|e| e.inner.clone()).collect()
+            events: res.iter().map(|e| e.inner.clone()).collect(),
         };
         Self { inner }
     }
@@ -188,7 +213,11 @@ impl RTriggerResponse {
     }
 
     fn events(&self) -> RArray {
-        self.inner.events.iter().map(|e| RTriggerEvent::new(e.id.clone(), e.timestamp, e.serialized_data.clone())).collect()
+        self.inner
+            .events
+            .iter()
+            .map(|e| RTriggerEvent::new(e.id.clone(), e.timestamp, e.serialized_data.clone()))
+            .collect()
     }
 }
 
@@ -202,7 +231,7 @@ impl RTriggerEvent {
         let inner = TriggerEvent {
             id: id,
             timestamp: timestamp,
-            serialized_data: serialized_data
+            serialized_data: serialized_data,
         };
         Self { inner }
     }
@@ -226,12 +255,15 @@ impl TryConvert for RTriggerEvent {
         let timestamp: u64 = val.funcall("timestamp", ())?;
         let serialized_data: String = val.funcall("serialized_data", ())?;
 
-        let inner = TriggerEvent { id, timestamp, serialized_data };
+        let inner = TriggerEvent {
+            id,
+            timestamp,
+            serialized_data,
+        };
 
         Ok(Self { inner })
     }
 }
-
 
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<(), Error> {
@@ -248,7 +280,10 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     trigger_event_class.define_singleton_method("new", function!(RTriggerEvent::new, 3))?;
     trigger_event_class.define_method("id", method!(RTriggerEvent::id, 0))?;
     trigger_event_class.define_method("timestamp", method!(RTriggerEvent::timestamp, 0))?;
-    trigger_event_class.define_method("serialized_data", method!(RTriggerEvent::serialized_data, 0))?;
+    trigger_event_class.define_method(
+        "serialized_data",
+        method!(RTriggerEvent::serialized_data, 0),
+    )?;
 
     let trigger_response_class = module.define_class("TriggerResponse", ruby.class_object())?;
     trigger_response_class.define_singleton_method("new", function!(RTriggerResponse::new, 2))?;
