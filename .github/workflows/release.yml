@@ -3,7 +3,7 @@ on:
   release:
     types: [published]
 jobs:
-  publish:
+  build-and-publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,12 +17,46 @@ jobs:
           bundler-cache: true
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.7
         with:
           toolchain: stable
 
       - name: Build the gem
         run: gem build *.gemspec
+
+      - name: Build Linux binary
+        run: |
+          cargo build --release --target x86_64-unknown-linux-gnu
+          mkdir -p pkg/x86_64-unknown-linux-gnu
+          cp target/x86_64-unknown-linux-gnu/release/app_bridge pkg/x86_64-unknown-linux-gnu/
+
+      - name: Build Apple Silicon binary
+        run: |
+          rustup target add aarch64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin
+          mkdir -p pkg/aarch64-apple-darwin
+          cp target/aarch64-apple-darwin/release/app_bridge pkg/aarch64-apple-darwin/
+
+      - name: Build Docker binary for Apple Silicon
+        run: |
+          rustup target add aarch64-unknown-linux-gnu
+          cargo build --release --target aarch64-unknown-linux-gnu
+          mkdir -p pkg/aarch64-unknown-linux-gnu
+          cp target/aarch64-unknown-linux-gnu/release/app_bridge pkg/aarch64-unknown-linux-gnu/
+
+      - name: Package binaries
+        run: |
+          tar -czvf pkg/x86_64-unknown-linux-gnu/app_bridge.tar.gz -C pkg/x86_64-unknown-linux-gnu app_bridge
+          tar -czvf pkg/aarch64-apple-darwin/app_bridge.tar.gz -C pkg/aarch64-apple-darwin app_bridge
+          tar -czvf pkg/aarch64-unknown-linux-gnu/app_bridge.tar.gz -C pkg/aarch64-unknown-linux-gnu app_bridge
+
+      - name: Include binaries in gem
+        run: |
+          mkdir -p pkg/gem/lib/app_bridge
+          cp pkg/x86_64-unknown-linux-gnu/app_bridge.tar.gz pkg/gem/lib/app_bridge/
+          cp pkg/aarch64-apple-darwin/app_bridge.tar.gz pkg/gem/lib/app_bridge/
+          cp pkg/aarch64-unknown-linux-gnu/app_bridge.tar.gz pkg/gem/lib/app_bridge/
+          gem build *.gemspec
 
       - name: Publish to RubyGems
         env:
