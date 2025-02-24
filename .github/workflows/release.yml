@@ -2,64 +2,55 @@ name: Publish Gem to RubyGems
 on:
   release:
     types: [published]
+
 jobs:
-  build-and-publish:
+  release:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64-linux, aarch64-linux, x86_64-darwin, arm64-darwin]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Ruby
+      - uses: actions/checkout@v4
+      - name: Install Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.3'
+          ruby-version: 3.3
           bundler-cache: true
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.7
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cross (for Linux)
+        run: cargo install cross
+
+      - name: Build for ${{ matrix.target }}
+        run: |
+          export RB_SYS_TARGET=${{ matrix.target }}
+          rake build
+          mv pkg/*.gem pkg/${{ matrix.target }}.gem
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          toolchain: stable
+          name: gems
+          path: pkg/*.gem
 
-      - name: Build the gem
-        run: gem build *.gemspec
+  push:
+    needs: release
+    runs-on: ubuntu-latest
 
-      - name: Build Linux binary
-        run: |
-          cargo build --release --target x86_64-unknown-linux-gnu
-          mkdir -p pkg/x86_64-unknown-linux-gnu
-          cp target/x86_64-unknown-linux-gnu/release/app_bridge pkg/x86_64-unknown-linux-gnu/
+    steps:
+      - name: Download built gems
+        uses: actions/download-artifact@v4
+        with:
+          name: gems
+          path: pkg
 
-      - name: Build Apple Silicon binary
-        run: |
-          rustup target add aarch64-apple-darwin
-          cargo build --release --target aarch64-apple-darwin
-          mkdir -p pkg/aarch64-apple-darwin
-          cp target/aarch64-apple-darwin/release/app_bridge pkg/aarch64-apple-darwin/
-
-      - name: Build Docker binary for Apple Silicon
-        run: |
-          rustup target add aarch64-unknown-linux-gnu
-          cargo build --release --target aarch64-unknown-linux-gnu
-          mkdir -p pkg/aarch64-unknown-linux-gnu
-          cp target/aarch64-unknown-linux-gnu/release/app_bridge pkg/aarch64-unknown-linux-gnu/
-
-      - name: Package binaries
-        run: |
-          tar -czvf pkg/x86_64-unknown-linux-gnu/app_bridge.tar.gz -C pkg/x86_64-unknown-linux-gnu app_bridge
-          tar -czvf pkg/aarch64-apple-darwin/app_bridge.tar.gz -C pkg/aarch64-apple-darwin app_bridge
-          tar -czvf pkg/aarch64-unknown-linux-gnu/app_bridge.tar.gz -C pkg/aarch64-unknown-linux-gnu app_bridge
-
-      - name: Include binaries in gem
-        run: |
-          mkdir -p pkg/gem/lib/app_bridge
-          cp pkg/x86_64-unknown-linux-gnu/app_bridge.tar.gz pkg/gem/lib/app_bridge/
-          cp pkg/aarch64-apple-darwin/app_bridge.tar.gz pkg/gem/lib/app_bridge/
-          cp pkg/aarch64-unknown-linux-gnu/app_bridge.tar.gz pkg/gem/lib/app_bridge/
-          gem build *.gemspec
-
-      - name: Publish to RubyGems
+      - name: Push to RubyGems
         env:
-          GEM_HOST_API_KEY: "${{ secrets.RUBYGEMS_API_KEY }}"
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
         run: |
-          gem push *.gem
+          for gem in pkg/*.gem; do
+            gem push "$gem"
+          done
