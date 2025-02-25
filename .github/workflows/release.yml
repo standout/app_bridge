@@ -34,6 +34,9 @@ jobs:
           ruby-version: "3.3"
           bundler-cache: true
 
+      - name: Install OpenSSL dependency
+        run: apt-get update -qq && apt-get install -y -qq libssl-dev pkg-config
+
       - uses: oxidize-rb/actions/cross-gem@v1.4.0
         id: cross-gem
         with:
