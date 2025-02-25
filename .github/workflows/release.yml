@@ -4,53 +4,101 @@ on:
     types: [published]
 
 jobs:
-  release:
+  ci-data:
     runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.fetch.outputs.result }}
+    steps:
+      - uses: oxidize-rb/actions/fetch-ci-data@v1
+        id: fetch
+        with:
+          supported-ruby-platforms: |
+            exclude: [arm-linux]
+          stable-ruby-versions: |
+            exclude: [head]
+  cross-gem:
+    name: Compile native gem for ${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    needs: ci-data
     strategy:
       matrix:
-        target: [x86_64-linux, aarch64-linux, x86_64-darwin, arm64-darwin]
-
+        platform: ${{ fromJSON(needs.ci-data.outputs.result).supported-ruby-platforms }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Ruby
-        uses: ruby/setup-ruby@v1
+      - uses: actions/checkout@v2
+
+      - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.3
-          bundler-cache: true
+          ruby-version: "3.1"
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cross (for Linux)
-        run: cargo install cross
-
-      - name: Build for ${{ matrix.target }}
-        run: |
-          export RB_SYS_TARGET=${{ matrix.target }}
-          rake build
-          mv pkg/*.gem pkg/${{ matrix.target }}.gem
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - uses: oxidize-rb/actions/cross-gem@v1
+        id: cross-gem
         with:
-          name: gems
-          path: pkg/*.gem
+          platform: ${{ matrix.platform }}
+          ruby-versions: ${{ join(fromJSON(needs.ci-data.outputs.result).stable-ruby-versions, ',') }}
 
-  push:
-    needs: release
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download built gems
-        uses: actions/download-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: gems
-          path: pkg
+          name: cross-gem-${{ matrix.platform }}
+          path: ${{ steps.cross-gem.outputs.gem-path }}
 
-      - name: Push to RubyGems
-        env:
-          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
-        run: |
-          for gem in pkg/*.gem; do
-            gem push "$gem"
-          done
+
+
+
+
+# jobs:
+#   release:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         platform:
+#           - arm64-darwin
+#           - x86_64-linux
+#           - aarch64-linux
+#           - x86_64-linux-musl
+#     container:
+#       image: "ghcr.io/rake-compiler/rake-compiler-dock-image:1.2.2-mri-${{ matrix.platform }}"
+
+#     steps:
+#       - uses: actions/checkout@v4
+#       - name: Install Ruby
+#         uses: ruby/setup-ruby@v1
+#         with:
+#           ruby-version: 3.3
+#           bundler-cache: true
+
+#       - name: Install Rust
+#         uses: dtolnay/rust-toolchain@stable
+
+#       - name: Install cross (for Linux)
+#         run: cargo install cross
+
+#       - name: Build for ${{ matrix.target }}
+#         run: |
+#           export RB_SYS_TARGET=${{ matrix.target }}
+#           rake build
+#           mv pkg/*.gem pkg/${{ matrix.target }}.gem
+
+#       - name: Upload artifacts
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: gems
+#           path: pkg/*.gem
+
+#   push:
+#     needs: release
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Download built gems
+#         uses: actions/download-artifact@v4
+#         with:
+#           name: gems
+#           path: pkg
+
+#       - name: Push to RubyGems
+#         env:
+#           GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+#         run: |
+#           for gem in pkg/*.gem; do
+#             gem push "$gem"
+#           done
