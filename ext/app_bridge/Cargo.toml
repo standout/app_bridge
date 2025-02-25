@@ -17,3 +17,4 @@ wasmtime-cli = "29.0.1"
 wasmtime-component-util = "29.0.1"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 tokio = { version = "1", features = ["full"] }
+openssl = { version = "*", features = ["vendored"] }
