@@ -29,12 +29,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oxidize-rb/actions/setup-ruby-and-rust@v1
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
-          rustup-toolchain: "stable"
           bundler-cache: true
-          cargo-cache: true
 
       - uses: oxidize-rb/actions/cross-gem@v1.4.0
         id: cross-gem
