@@ -29,11 +29,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.3"
-          bundler-cache: true
-
       - uses: oxidize-rb/actions/setup-ruby-and-rust@v1
         with:
           ruby-version: "3.3"
