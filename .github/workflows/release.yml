@@ -34,6 +34,13 @@ jobs:
           ruby-version: "3.3"
           bundler-cache: true
 
+      - uses: oxidize-rb/actions/setup-ruby-and-rust@v1
+        with:
+          ruby-version: "3.3"
+          rustup-toolchain: "stable"
+          bundler-cache: true
+          cargo-cache: true
+
       - uses: oxidize-rb/actions/cross-gem@v1.4.0
         id: cross-gem
         with:
