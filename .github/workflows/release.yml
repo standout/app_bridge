@@ -2,6 +2,9 @@ name: Publish Gem to RubyGems
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - main
 
 jobs:
   ci-data:
