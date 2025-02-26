@@ -19,6 +19,7 @@ jobs:
             exclude: [arm-linux, x86_64-linux-musl, aarch64-linux-musl, x64-mingw32, x64-mingw-ucrt]
           stable-ruby-versions: |
             exclude: [head]
+
   cross-gem:
     name: Compile native gem for ${{ matrix.platform }}
     runs-on: ubuntu-latest
@@ -48,64 +49,21 @@ jobs:
           name: cross-gem-${{ matrix.platform }}
           path: ${{ steps.cross-gem.outputs.gem-path }}
 
+  publish:
+    name: Publish to RubyGems
+    runs-on: ubuntu-latest
+    needs: cross-gem
+    steps:
+      - name: Download built gems
+        uses: actions/download-artifact@v4
+        with:
+          name: cross-gem-*
+          path: pkg
 
-
-
-
-# jobs:
-#   release:
-#     runs-on: ubuntu-latest
-#     strategy:
-#       matrix:
-#         platform:
-#           - arm64-darwin
-#           - x86_64-linux
-#           - aarch64-linux
-#           - x86_64-linux-musl
-#     container:
-#       image: "ghcr.io/rake-compiler/rake-compiler-dock-image:1.2.2-mri-${{ matrix.platform }}"
-
-#     steps:
-#       - uses: actions/checkout@v4
-#       - name: Install Ruby
-#         uses: ruby/setup-ruby@v1
-#         with:
-#           ruby-version: 3.3
-#           bundler-cache: true
-
-#       - name: Install Rust
-#         uses: dtolnay/rust-toolchain@stable
-
-#       - name: Install cross (for Linux)
-#         run: cargo install cross
-
-#       - name: Build for ${{ matrix.target }}
-#         run: |
-#           export RB_SYS_TARGET=${{ matrix.target }}
-#           rake build
-#           mv pkg/*.gem pkg/${{ matrix.target }}.gem
-
-#       - name: Upload artifacts
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: gems
-#           path: pkg/*.gem
-
-#   push:
-#     needs: release
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       - name: Download built gems
-#         uses: actions/download-artifact@v4
-#         with:
-#           name: gems
-#           path: pkg
-
-#       - name: Push to RubyGems
-#         env:
-#           GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
-#         run: |
-#           for gem in pkg/*.gem; do
-#             gem push "$gem"
-#           done
+      - name: Push to RubyGems
+        env:
+          GEM_HOST_API_KEY: "${{ secrets.RUBYGEMS_API_KEY }}"
+        run: |
+          for gem in pkg/*.gem; do
+            gem push "$gem"
+          done
