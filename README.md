@@ -7,7 +7,7 @@
 Add the following line to your `Gemfile`:
 
 ```ruby
-gem 'app_bridge', github: 'standout/app_bridge'
+gem 'app_bridge'
 ```
 
 Then, install the gem by running:
@@ -70,4 +70,6 @@ bundle exec rake install
 
 ## Release & Distribution
 
-This gem is **not** published to RubyGems. It is intended for internal use within Standout's products only.
+To release a new version of the gem, update the version number in `lib/app_bridge/version.rb` and in `ext/app_bridge/Cargo.toml`. They should be the same.
+
+Then push the changes to the repository and create a new release on GitHub. The gem will be automatically built and published to RubyGems.
