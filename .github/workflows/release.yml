@@ -58,7 +58,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: cross-gem-*
-          path: pkg
+          path: ./pkg/*.gem
 
       - name: Push to RubyGems
         env:
