@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    app_bridge (0.6.0)
+    app_bridge (0.7.0)
       rb_sys (~> 0.9.110)
 
 GEM

@@ -49,8 +49,8 @@ jobs:
           name: cross-gem-${{ matrix.platform }}
           path: ${{ steps.cross-gem.outputs.gem-path }}
 
-  publish:
-    name: Publish to RubyGems
+  publish-native-gem:
+    name: Publish native gem to RubyGems
     runs-on: ubuntu-latest
     needs: [ci-data, cross-gem]
     strategy:
@@ -70,3 +70,21 @@ jobs:
           for gem in pkg/*.gem; do
             gem push "$gem"
           done
+
+  publish-gem:
+    name: Publish gem to RubyGems
+    runs-on: ubuntu-latest
+    # We only want this to run when we know that the native gem has been built.
+    # This will prevent the job from running if the native gem build fails.
+    needs: [cross-gem]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - name: Build the gem
+        run: gem build *.gemspec
+      - name: Publish to RubyGems
+        env:
+          GEM_HOST_API_KEY: "${{ secrets.RUBYGEMS_API_KEY }}"
+        run: gem push *.gem
