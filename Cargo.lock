@@ -67,7 +67,7 @@ checksum = "6b964d184e89d9b6b67dd2715bc8e74cf3107fb2b529990c90cf517326150bf4"
 
 [[package]]
 name = "app_bridge"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "magnus",
  "reqwest",
