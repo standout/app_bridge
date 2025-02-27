@@ -1,7 +1,11 @@
 # frozen_string_literal: true
 
 require_relative "app_bridge/version"
-require_relative "app_bridge/app_bridge"
+begin
+  require "app_bridge/#{RUBY_VERSION.split(".").first(2).join(".")}/app_bridge"
+rescue LoadError
+  require "app_bridge/app_bridge"
+end
 
 module AppBridge
   class Error < StandardError; end
