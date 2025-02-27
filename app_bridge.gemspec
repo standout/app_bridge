@@ -35,7 +35,7 @@ Gem::Specification.new do |spec|
 
   spec.bindir = "exe"
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
-  spec.require_paths = ["lib"]
+  spec.require_paths = %w[lib sig]
   spec.extensions = ["ext/app_bridge/extconf.rb"]
 
   # Uncomment to register a new dependency of your gem

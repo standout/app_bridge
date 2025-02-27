@@ -5,6 +5,46 @@ module AppBridge
   class App
     def initialize: (String) -> void
 
-    def triggers : () -> Array[String]
+    def triggers: () -> Array[String]
+
+    def fetch_events: (TriggerContext) -> TriggerResponse
+  end
+
+  class Account
+    def self.new: (String, String, String) -> Account
+
+    def id: () -> String
+
+    def name: () -> String
+
+    def serialized_data: () -> String
+  end
+
+  class TriggerEvent
+    def self.new: (String, Integer, String) -> TriggerEvent
+
+    def id: () -> String
+
+    def timestamp: () -> Integer
+
+    def serialized_data: () -> String
+  end
+
+  class TriggerResponse
+    def self.new: (String, Array[TriggerEvent]) -> TriggerResponse
+
+    def store: () -> String
+
+    def events: () -> Array[TriggerEvent]
+  end
+
+  class TriggerContext
+    def self.new: (String, Account, String) -> TriggerContext
+
+    def trigger_id: () -> String
+
+    def account: () -> Account
+
+    def store: () -> String
   end
 end
