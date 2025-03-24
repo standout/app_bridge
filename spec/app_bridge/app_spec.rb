@@ -37,7 +37,7 @@ RSpec.describe AppBridge::App do
 
     it "includes trigger events" do
       response = app.fetch_events(context)
-      expect(response.store).to eq(context.store)
+      expect(response.store).to eq("10")
       expect(response.events).to include(
         have_attributes(id: "1", serialized_data: include("delectus aut autem")),
         have_attributes(id: "2", serialized_data: include("quis ut nam facilis et officia qui")),

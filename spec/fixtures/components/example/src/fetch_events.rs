@@ -15,6 +15,8 @@ use crate::{
 use serde_json::Value;
 
 pub fn main(context: TriggerContext) -> TriggerResponse {
+  // Parse the offset from context.store, default to 0 if invalid
+  let offset: usize = context.store.parse().unwrap_or(0);
 
   let response = RequestBuilder::new()
     .method(Method::Get)
@@ -34,9 +36,12 @@ pub fn main(context: TriggerContext) -> TriggerResponse {
         }
       }).collect();
 
+      // Apply offset and limit to get the first 10 events
+      let paginated_events = events.into_iter().skip(offset).take(10).collect();
+
       TriggerResponse {
-        store: context.store,
-        events,
+        store: (offset + 10).to_string(),
+        events: paginated_events,
       }
     },
     Err(err) => TriggerResponse {
