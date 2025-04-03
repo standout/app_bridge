@@ -81,8 +81,9 @@ interface triggers {
   // Fetch events
   //
   // There are some limitations to the function:
-  // - It must return within 30 seconds
-  // - It must return less than or equal to 100 events
+  // - It must a `trigger-response` within 30 seconds
+  // - It must return less than or equal to 100 `trigger-response.events`
+  // - It must not return more than 64 kB of data in the `trigger-response.store`
   //
   // If you need to fetch more events, you can return up to 100 events and then
   // store the data needed for you to remember where you left off in the store.

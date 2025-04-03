@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative "app_bridge/version"
+require_relative "app_bridge/app"
+
 begin
   require "app_bridge/#{RUBY_VERSION.split(".").first(2).join(".")}/app_bridge"
 rescue LoadError
@@ -9,6 +11,9 @@ end
 
 module AppBridge
   class Error < StandardError; end
+  class TimeoutError < Error; end
+  class TooManyEventsError < Error; end
+  class StoreTooLargeError < Error; end
 
   # Represents a trigger event that is recieved from the app.
   class TriggerEvent

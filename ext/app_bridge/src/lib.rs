@@ -301,7 +301,8 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     app_class.define_alloc_func::<MutRApp>();
     app_class.define_method("initialize", method!(MutRApp::initialize, 1))?;
     app_class.define_method("triggers", method!(MutRApp::triggers, 0))?;
-    app_class.define_method("fetch_events", method!(MutRApp::rb_fetch_events, 1))?;
+    app_class.define_private_method("_rust_fetch_events", method!(MutRApp::rb_fetch_events, 1))?;
+
 
     Ok(())
 }

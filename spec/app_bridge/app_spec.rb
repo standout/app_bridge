@@ -44,5 +44,82 @@ RSpec.describe AppBridge::App do
         have_attributes(id: "3", serialized_data: include("fugiat veniam minus"))
       )
     end
+
+    context "when polling takes to long" do
+      before do
+        allow(app).to receive(:polling_timeout).and_return(0.01)
+        allow(app).to receive(:_rust_fetch_events).and_wrap_original do |_original_method, *_args|
+          sleep(10) # Simulate a long-running operation
+        end
+      end
+
+      it "raises a Timeout::Error with a message" do
+        expect { app.fetch_events(context) }
+          .to raise_error(AppBridge::TimeoutError, /Polling exceeded \d+(\.\d+)? seconds/)
+      end
+    end
+
+    context "when context has more than 100 events" do
+      let(:events) do
+        101.times.map do |i|
+          AppBridge::TriggerEvent.new(
+            i.to_s,
+            (Time.now.to_f * 1000).to_i,
+            JSON.generate({ key: "value" })
+          )
+        end
+      end
+
+      let(:response) do
+        AppBridge::TriggerResponse.new("some store", events)
+      end
+
+      before do
+        allow(app).to receive(:_rust_fetch_events).and_return(response)
+      end
+
+      it "raises a TooManyEventsError" do
+        expect { app.fetch_events(context) }
+          .to raise_error(AppBridge::TooManyEventsError, /Maximum 100 events allowed/)
+      end
+    end
+
+    describe "limit in store size" do
+      let(:events) do
+        2.times.map do |i|
+          AppBridge::TriggerEvent.new(
+            i.to_s,
+            (Time.now.to_f * 1000).to_i,
+            JSON.generate({ key: "value" })
+          )
+        end
+      end
+
+      let(:response) do
+        AppBridge::TriggerResponse.new(store, events)
+      end
+
+      before do
+        allow(app).to receive(:_rust_fetch_events).and_return(response)
+      end
+
+      context "when response store is 64 kilobytes" do
+        let(:store) { "a" * 64 * 1024 }
+
+        it "does not raise an error" do
+          expect { app.fetch_events(context) }
+            .not_to raise_error
+        end
+      end
+
+      context "when response store is 1 byte over 64 kilobytes" do
+        let(:store) { "a" * ((64 * 1024) + 1) }
+
+        it "raises a StoreTooLargeError" do
+          expect { app.fetch_events(context) }
+            .to raise_error(AppBridge::StoreTooLargeError, /Store size exceeds 64 kB limit/)
+        end
+      end
+    end
   end
 end
