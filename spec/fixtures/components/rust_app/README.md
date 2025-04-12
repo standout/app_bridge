@@ -1,4 +1,4 @@
-# Example App
+# Rust App
 
 This example app is created to use in the tests.
 
@@ -22,7 +22,7 @@ cargo clean && cargo build --target wasm32-wasip2 --release
 Verify the inluded WIT by running:
 
 ```bash
-wasm-tools component wit target/wasm32-wasip2/release/example.wasm
+wasm-tools component wit target/wasm32-wasip2/release/rust_app.wasm
 ```
 
 It should include the WIT-file defined in `ext/app_bridge/wit/world.wit`.

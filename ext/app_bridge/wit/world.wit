@@ -59,24 +59,62 @@ interface types {
     // ensure that the event is only triggered once per order update.
     id: string,
 
-    // The timestamp of the event.
-    // Must be a unix timestamp in milliseconds since epoch (UTC).
-    // In JavaScript `Date.now()` can be used to get the current timestamp in
-    // milliseconds.
-    timestamp: u64,
-
     // Serialized data must be a JSON object serialized into a string
     // Note that it is important that the root is a object, not an array,
     // or another primitive type.
     serialized-data: string,
   }
+
+  /// A structured error that can be returned by for example a call to a trigger or action.
+  /// Contains a machine-readable code and a human-readable message.
+  record app-error {
+    /// The error code identifying the type of failure.
+    code: error-code,
+
+    /// A human-readable message describing the error in more detail.
+    message: string,
+  }
+
+  /// An enumeration of error codes that can be returned by a trigger implementation.
+  /// These codes help the platform and plugin developers distinguish between different types of failures.
+  variant error-code {
+    /// Authentication failed. Typically due to an invalid or expired API key or token.
+    unauthenticated,
+
+    /// Authorization failed. The account is valid but does not have the necessary permissions.
+    forbidden,
+
+    /// The trigger is misconfigured. For example, a required setting is missing or invalid.
+    misconfigured,
+
+    /// The target system does not support a required feature or endpoint.
+    unsupported,
+
+    /// The target system is rate-limiting requests. Try again later.
+    rate-limit,
+
+    /// The request timed out. The target system did not respond in time.
+    timeout,
+
+    /// The target system is currently unavailable or unreachable.
+    unavailable,
+
+    /// An unexpected internal error occurred in the plugin.
+    internal-error,
+
+    /// The response from the external system could not be parsed or was in an invalid format.
+    malformed-response,
+
+    /// A catch-all for all other types of errors. Should include a descriptive message.
+    other,
+  }
 }
 
 
 interface triggers {
-  use types.{trigger-context, trigger-event, trigger-response};
+  use types.{trigger-context, trigger-event, trigger-response, app-error};
 
-  get-triggers: func() -> list<string>;
+  trigger-ids: func() -> result<list<string>, app-error>;
 
   // Fetch events
   //
@@ -99,7 +137,7 @@ interface triggers {
   // the same events. That will ensure that the user that is building an
   // integration with your trigger will not miss any events if your system is
   // down for a short period of time.
-  fetch-events: func(context: trigger-context) -> trigger-response;
+  fetch-events: func(context: trigger-context) -> result<trigger-response, app-error>;
 }
 
 interface http {
