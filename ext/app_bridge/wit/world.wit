@@ -1,4 +1,4 @@
-package standout:app@2.0.0;
+package standout:app@2.0.1;
 
 interface types {
   // The trigger-store is a string that is used to store data between trigger
