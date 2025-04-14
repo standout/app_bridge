@@ -2,7 +2,7 @@
 
 require "English"
 
-namespace :fixtures do
+namespace :fixtures do # rubocop:disable Metrics/BlockLength
   namespace :apps do
     desc "Clean up build artifacts"
     task :clean do
