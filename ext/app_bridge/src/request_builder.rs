@@ -162,11 +162,17 @@ impl From<Method> for ReqwestMethod {
 
 impl Default for Request {
     fn default() -> Self {
+        let version = env!("CARGO_PKG_VERSION");
+        let user_agent = format!("Standout-AppBridge/{version}");
+        let headers = vec![
+            ("User-Agent".to_string(), user_agent.into()),
+        ];
+
         Self {
             url: "".to_string(),
             method: Method::Get,
             body: "".to_string(),
-            headers: Vec::new(),
+            headers,
         }
     }
 }
@@ -192,5 +198,37 @@ impl std::fmt::Display for Method {
             Method::Head => write!(f, "HEAD"),
             Method::Options => write!(f, "OPTIONS"),
         }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use httpmock::{MockServer, Method::GET};
+
+    #[test]
+    fn sends_request_with_default_user_agent() {
+        let version = env!("CARGO_PKG_VERSION");
+        let user_agent = format!("Standout-AppBridge/{version}");
+
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(GET)
+                .path("/headers")
+                .header("User-Agent", user_agent.clone());
+            then.status(200);
+        });
+        let url = format!("{}/headers", server.base_url());
+
+        let mut app_state = AppState::default();
+        let builder = app_state.new();
+        let builder = app_state.method(builder, Method::Get);
+        let builder = app_state.url(builder, url);
+
+        let response = app_state.send(builder).expect("Request failed");
+
+        assert_eq!(response.status, 200);
+        mock.assert();
     }
 }

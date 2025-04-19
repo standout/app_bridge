@@ -22,4 +22,4 @@ end
 # Load all project specific rake tasks
 Dir.glob(File.expand_path("tasks/**/*.rake", __dir__)).each { |file| load file }
 
-task default: %i[fixtures compile spec rubocop]
+task default: %i[fixtures compile rust:test spec rubocop]
