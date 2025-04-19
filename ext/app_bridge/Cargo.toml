@@ -1,6 +1,6 @@
 [package]
 name = "app_bridge"
-version = "1.0.0"
+version = "2.0.1"
 edition = "2021"
 authors = ["Alexander Ross <ross@standout.se>"]
 publish = false
@@ -13,3 +13,6 @@ magnus = { version = "0.7.1" }
 wasmtime = "29.0.1"
 wasmtime-wasi = "29.0.1"
 reqwest = { version = "0.12", features = ["blocking", "json", "native-tls-vendored"] }
+
+[dev-dependencies]
+httpmock = "0.7.0"
