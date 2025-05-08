@@ -4,7 +4,7 @@ use reqwest::blocking::Client;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use wasmtime::component::ResourceTable;
-use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiView};
+use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiView, IoView};
 
 pub struct AppState {
     ctx: WasiCtx,
@@ -30,12 +30,15 @@ impl standout::app::http::Host for AppState {
     // Impl http host methods here
 }
 
+impl IoView for AppState {
+    fn table(&mut self) -> &mut ResourceTable {
+        &mut self.table
+    }
+}
+
 impl WasiView for AppState {
     fn ctx(&mut self) -> &mut WasiCtx {
         &mut self.ctx
-    }
-    fn table(&mut self) -> &mut ResourceTable {
-        &mut self.table
     }
 }
 
