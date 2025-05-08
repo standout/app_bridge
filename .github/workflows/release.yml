@@ -1,4 +1,6 @@
 name: Publish Gem to RubyGems
+permissions:
+  contents: read
 on:
   release:
     types: [published]
