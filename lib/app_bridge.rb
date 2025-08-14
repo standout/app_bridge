@@ -3,17 +3,12 @@
 require_relative "app_bridge/version"
 require_relative "app_bridge/app"
 
-begin
-  require "app_bridge/#{RUBY_VERSION.split(".").first(2).join(".")}/app_bridge"
-rescue LoadError
-  require "app_bridge/app_bridge"
-end
-
 module AppBridge
   class Error < StandardError; end
   class TimeoutError < Error; end
   class TooManyEventsError < Error; end
   class StoreTooLargeError < Error; end
+  class ActionResponseTooLargeError < Error; end
 
   # Represents a trigger event that is recieved from the app.
   class TriggerEvent
@@ -23,3 +18,6 @@ module AppBridge
     end
   end
 end
+
+# Load the extension after the module is defined
+require_relative "app_bridge/app_bridge"

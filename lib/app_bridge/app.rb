@@ -3,8 +3,15 @@
 require "timeout"
 
 module AppBridge
-  # An app that can be used to fetch events.
+  # An app that can be used to fetch events and execute actions.
   class App
+    def initialize(component_path)
+      @component_path = component_path
+      initialize_bridge
+    rescue StandardError
+      raise InternalError, "Incompatible WASM file version"
+    end
+
     def fetch_events(context)
       response = request_events_with_timeout(context)
 
@@ -14,11 +21,23 @@ module AppBridge
       response
     end
 
-    def polling_timeout
+    def execute_action(context)
+      response = request_action_with_timeout(context)
+
+      validate_action_response_size!(response.serialized_output)
+
+      response
+    end
+
+    def timeout_seconds
       30 # seconds
     end
 
     private
+
+    def initialize_bridge
+      _rust_initialize(@component_path)
+    end
 
     def validate_number_of_events!(events)
       return if events.size <= 100
@@ -32,8 +51,20 @@ module AppBridge
       raise StoreTooLargeError, "Store size exceeds 64 kB limit"
     end
 
+    def validate_action_response_size!(serialized_output)
+      return if serialized_output.size <= 64 * 1024
+
+      raise ActionResponseTooLargeError, "Action response size exceeds 64 kB limit"
+    end
+
+    def request_action_with_timeout(context)
+      Timeout.timeout(timeout_seconds, TimeoutError, "Action exceeded #{timeout_seconds} seconds") do
+        _rust_execute_action(context)
+      end
+    end
+
     def request_events_with_timeout(context)
-      Timeout.timeout(polling_timeout, TimeoutError, "Polling exceeded #{polling_timeout} seconds") do
+      Timeout.timeout(timeout_seconds, TimeoutError, "Polling exceeded #{timeout_seconds} seconds") do
         _rust_fetch_events(context)
       end
     end

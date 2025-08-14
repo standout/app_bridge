@@ -42,7 +42,7 @@ impl TryConvert for RTriggerContext {
         let store: String = val.funcall("store", ())?;
         let trigger_id: String = val.funcall("trigger_id", ())?;
 
-        let account: RAccount = TryConvert::try_convert(account_val).unwrap();
+        let account: RAccount = TryConvert::try_convert(account_val)?;
 
         let inner = TriggerContext {
             trigger_id: trigger_id,
