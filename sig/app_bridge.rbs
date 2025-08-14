@@ -7,7 +7,11 @@ module AppBridge
 
     def triggers: () -> Array[String]
 
+    def actions: () -> Array[String]
+
     def fetch_events: (TriggerContext) -> TriggerResponse
+
+    def execute_action: (ActionContext) -> ActionResponse
   end
 
   class Account
@@ -46,5 +50,21 @@ module AppBridge
     def account: () -> Account
 
     def store: () -> String
+  end
+
+  class ActionContext
+    def self.new: (String, Account, String) -> ActionContext
+
+    def action_id: () -> String
+
+    def account: () -> Account
+
+    def input: () -> String
+  end
+
+  class ActionResponse
+    def self.new: (String) -> ActionResponse
+
+    def serialized_output: () -> String
   end
 end

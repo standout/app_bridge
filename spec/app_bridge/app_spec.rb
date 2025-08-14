@@ -53,7 +53,7 @@ RSpec.describe AppBridge::App do
 
       context "when polling takes too long" do
         before do
-          allow(app).to receive(:polling_timeout).and_return(0.01)
+          allow(app).to receive(:timeout_seconds).and_return(0.01)
           allow(app).to receive(:_rust_fetch_events).and_wrap_original do |_original_method, *_args|
             sleep(10) # Simulate a long-running operation
           end
@@ -123,6 +123,92 @@ RSpec.describe AppBridge::App do
             expect { app.fetch_events(context) }
               .to raise_error(AppBridge::StoreTooLargeError, /Store size exceeds 64 kB limit/)
           end
+        end
+      end
+    end
+
+    describe "#action_ids" do
+      it "returns an array of action ids" do
+        expect(app.action_ids).to be_a(Array)
+          .and include("http-get", "http-post")
+
+        expect(app.action_ids).not_to include("new-posts")
+      end
+
+      it "performs in less than 300 microseconds" do
+        # Load the app, we are interested in the performance of the action_ids
+        # method only, not the time to load the app.
+        app
+
+        expect { app.action_ids }.to perform_under(300).us.sample(10).times
+      end
+    end
+
+    describe "#execute_action(context)" do
+      let(:context) do
+        account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
+        AppBridge::ActionContext.new("http-get", account, JSON.generate({ url: "https://httpbin.org/get" }))
+      end
+
+      it "returns a response with output" do
+        response = app.execute_action(context)
+        expect(response).to be_a(AppBridge::ActionResponse)
+        expect(response.serialized_output).to be_a(String)
+        expect(response.serialized_output).to include("url")
+      end
+
+      context "with invalid action ID" do
+        let(:context) do
+          account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
+          AppBridge::ActionContext.new("invalid-action", account, "{}")
+        end
+
+        it "raises an error" do
+          expect { app.execute_action(context) }.to raise_error(AppBridge::Error)
+        end
+      end
+
+      context "with http-post action" do
+        let(:context) do
+          account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
+          AppBridge::ActionContext.new("http-post", account, JSON.generate({
+                                                                             url: "https://httpbin.org/post",
+                                                                             body: JSON.generate({ test: "data" })
+                                                                           }))
+        end
+
+        it "returns a response with output" do
+          response = app.execute_action(context)
+          expect(response).to be_a(AppBridge::ActionResponse)
+          expect(response.serialized_output).to be_a(String)
+          expect(response.serialized_output).to include("test")
+        end
+      end
+
+      context "when action response is too large" do
+        let(:context) do
+          account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
+          AppBridge::ActionContext.new("http-get", account, JSON.generate({ url: "https://httpbin.org/get" }))
+        end
+
+        it "raises ActionResponseTooLargeError when response exceeds 64 kB" do
+          # Mock the action to return a response that's too large
+          allow(app).to receive(:_rust_execute_action).and_return(
+            AppBridge::ActionResponse.new("a" * ((64 * 1024) + 1))
+          )
+
+          expect { app.execute_action(context) }
+            .to raise_error(AppBridge::ActionResponseTooLargeError, /Action response size exceeds 64 kB limit/)
+        end
+
+        it "does not raise error when response is exactly 64 kB" do
+          # Mock the action to return a response that's exactly 64 kB
+          allow(app).to receive(:_rust_execute_action).and_return(
+            AppBridge::ActionResponse.new("a" * (64 * 1024))
+          )
+
+          expect { app.execute_action(context) }
+            .not_to raise_error
         end
       end
     end

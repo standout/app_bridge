@@ -9,6 +9,8 @@ use wrappers::account::RAccount;
 use wrappers::trigger_context::RTriggerContext;
 use wrappers::trigger_event::RTriggerEvent;
 use wrappers::trigger_response::RTriggerResponse;
+use wrappers::action_context::RActionContext;
+use wrappers::action_response::RActionResponse;
 use wrappers::app::MutRApp;
 
 #[magnus::init]
@@ -53,12 +55,26 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     trigger_context_class.define_method("account", method!(RTriggerContext::account, 0))?;
     trigger_context_class.define_method("store", method!(RTriggerContext::store, 0))?;
 
+    // Define the Action classes
+    let action_context_class = module.define_class("ActionContext", ruby.class_object())?;
+    action_context_class.define_singleton_method("new", function!(RActionContext::new, 3))?;
+    action_context_class.define_method("action_id", method!(RActionContext::action_id, 0))?;
+    action_context_class.define_method("account", method!(RActionContext::account, 0))?;
+    action_context_class.define_method("serialized_input", method!(RActionContext::serialized_input, 0))?;
+
+    let action_response_class = module.define_class("ActionResponse", ruby.class_object())?;
+    action_response_class.define_singleton_method("new", function!(RActionResponse::new, 1))?;
+    action_response_class.define_method("serialized_output", method!(RActionResponse::serialized_output, 0))?;
+
     // Define the App class
     let app_class = module.define_class("App", ruby.class_object())?;
     app_class.define_alloc_func::<MutRApp>();
     app_class.define_method("initialize", method!(MutRApp::initialize, 1))?;
     app_class.define_method("trigger_ids", method!(MutRApp::trigger_ids, 0))?;
+    app_class.define_method("action_ids", method!(MutRApp::action_ids, 0))?;
+    app_class.define_private_method("_rust_initialize", method!(MutRApp::initialize, 1))?;
     app_class.define_private_method("_rust_fetch_events", method!(MutRApp::rb_fetch_events, 1))?;
+    app_class.define_private_method("_rust_execute_action", method!(MutRApp::rb_execute_action, 1))?;
 
     Ok(())
 }

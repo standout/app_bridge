@@ -3,7 +3,10 @@ use wasmtime::component::{bindgen, Component, Linker};
 use wasmtime::{Engine, Result, Store};
 use wasmtime_wasi::WasiCtxBuilder;
 
-bindgen!();
+bindgen!({
+    path: "./wit",
+    world: "bridge",
+});
 
 use crate::app_state::AppState;
 
@@ -37,9 +40,21 @@ pub fn app(
 ) -> Result<Bridge> {
     // Load the application component from the file system.
     let component = Component::from_file(&engine, file_path)?;
-    let instance = Bridge::instantiate(store, &component, &linker)?;
 
-    Ok(instance)
+    // Try to instantiate the component - if it fails due to missing interface,
+    // we'll catch that error and return a specific message
+    match Bridge::instantiate(store, &component, &linker) {
+        Ok(instance) => Ok(instance),
+        Err(e) => {
+            if e.to_string().contains("no exported instance") {
+                Err(wasmtime::Error::msg(
+                    "Incompatible WASM file version"
+                ))
+            } else {
+                Err(e)
+            }
+        }
+    }
 }
 
 impl Default for Bridge {

@@ -31,6 +31,19 @@ interface types {
     store: trigger-store,
   }
 
+  record action-context {
+    // Action ID is a unique identifier for the action that is requested to be
+    // invoked.
+    action-id: string,
+
+    // The account that the action is invoked for.
+    account: account,
+
+    // The input data for the action, serialized as a JSON object string.
+    // This contains the data passed from the previous step in the workflow.
+    serialized-input: string,
+  }
+
   record trigger-response {
     // The trigger events, each event will be used to spawn a new workflow
     // execution in Standouts integration plattform.
@@ -39,6 +52,13 @@ interface types {
     // The updated store will be stored and used the next time the trigger is
     // invoked.
     store: trigger-store,
+  }
+
+  record action-response {
+    // The output data from the action, serialized as a JSON object string.
+    // This contains the data that will be passed to the next step in the workflow.
+    // The data must be a valid JSON object (not an array or primitive).
+    serialized-output: string
   }
 
   record trigger-event {
@@ -140,6 +160,28 @@ interface triggers {
   fetch-events: func(context: trigger-context) -> result<trigger-response, app-error>;
 }
 
+interface actions {
+  use types.{action-context, action-response, app-error};
+
+  action-ids: func() -> result<list<string>, app-error>;
+
+  // Execute an action
+  //
+  // There are some limitations to the function:
+  // - It must return an `action-response` within 30 seconds
+  // - The serialized-output must be a valid JSON object serialized as a string
+  //
+  // Actions can perform various operations such as:
+  // - Making HTTP requests to external APIs
+  // - Processing and transforming data
+  // - Storing data for future use
+  // - Triggering other systems or workflows
+  //
+  // The action receives input data from the previous step and can return
+  // serialized output data to be passed to the next step in the workflow.
+  execute: func(context: action-context) -> result<action-response, app-error>;
+}
+
 interface http {
   record response {
     status: u16,
@@ -193,4 +235,5 @@ interface http {
 world bridge {
   import http;
   export triggers;
+  export actions;
 }
