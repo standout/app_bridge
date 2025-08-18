@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "@bytecodealliance/componentize-js": "^0.18.2",
-    "@bytecodealliance/jco": "^1.11.1"
+    "@bytecodealliance/jco": "^1.13.3"
   },
   "scripts": {
     "build": "npm install && esbuild src/index.mjs --bundle --format=esm --platform=node --external:standout:app/http@2.0.1 --outfile=build/bundle.mjs && jco componentize build/bundle.mjs --wit ../../../../ext/app_bridge/wit/world.wit --world-name bridge --out ../js_app.wasm --disable all"
