@@ -1,17 +1,34 @@
 import { AppError } from './app_error.mjs';
+
 let actionsRegister = {}
 
 export const ActionRegister = {
-  register(id, fn) {
+  register(id, fn, inputSchema, outputSchema) {
     if (actionsRegister[id]) {
       throw AppError.internalError(`Action ${id} is already registered`);
     }
 
-    actionsRegister[id] = fn;
+    actionsRegister[id] = { fn, inputSchema, outputSchema };
   },
 
   ids() {
     return Object.keys(actionsRegister);
+  },
+
+  inputSchema(actionId) {
+    if (!(actionId in actionsRegister)) {
+      const msg = `Action ${actionId} is not registered`;
+      throw AppError.internalError(msg);
+    }
+    return actionsRegister[actionId].inputSchema;
+  },
+
+  outputSchema(actionId) {
+    if (!(actionId in actionsRegister)) {
+      const msg = `Action ${actionId} is not registered`;
+      throw AppError.internalError(msg);
+    }
+    return actionsRegister[actionId].outputSchema;
   },
 
   async call (context) {
@@ -20,7 +37,7 @@ export const ActionRegister = {
       throw AppError.internalError(msg);
     }
 
-    const fn = actionsRegister[context.actionId];
-    return await fn(context);
+    const def = actionsRegister[context.actionId];
+    return await def.fn(context);
   }
 }

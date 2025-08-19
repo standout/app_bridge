@@ -130,7 +130,7 @@ RSpec.describe AppBridge::App do
     describe "#action_ids" do
       it "returns an array of action ids" do
         expect(app.action_ids).to be_a(Array)
-          .and include("http-get", "http-post")
+          .and include("http-get", "http-post", "complex-input")
 
         expect(app.action_ids).not_to include("new-posts")
       end
@@ -141,6 +141,154 @@ RSpec.describe AppBridge::App do
         app
 
         expect { app.action_ids }.to perform_under(300).us.sample(10).times
+      end
+    end
+
+    describe "#trigger_input_schema" do
+      it "returns the input schema for new-todos trigger" do
+        schema = app.trigger_input_schema("new-todos")
+        expect(schema).to be_a(String)
+
+        parsed_schema = JSON.parse(schema)
+        expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
+        expect(parsed_schema["type"]).to eq("object")
+        expect(parsed_schema["properties"]["since"]["type"]).to eq("string")
+        expect(parsed_schema["properties"]["since"]["description"]).to eq("Fetch events since ISO timestamp")
+      end
+
+      it "returns the input schema for new-posts trigger" do
+        schema = app.trigger_input_schema("new-posts")
+        expect(schema).to be_a(String)
+
+        parsed_schema = JSON.parse(schema)
+        expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
+        expect(parsed_schema["type"]).to eq("object")
+        expect(parsed_schema["properties"]["since"]["type"]).to eq("string")
+      end
+
+      it "raises an error for invalid trigger ID" do
+        expect { app.trigger_input_schema("invalid-trigger") }.to raise_error(AppBridge::Error)
+      end
+    end
+
+    describe "#trigger_output_schema" do
+      it "returns the output schema for new-todos trigger" do
+        schema = app.trigger_output_schema("new-todos")
+        expect(schema).to be_a(String)
+
+        parsed_schema = JSON.parse(schema)
+        expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
+        expect(parsed_schema["type"]).to eq("object")
+        expect(parsed_schema["properties"]["events"]["type"]).to eq("array")
+        expect(parsed_schema["properties"]["store"]["type"]).to eq("string")
+      end
+
+      it "returns the output schema for new-posts trigger" do
+        schema = app.trigger_output_schema("new-posts")
+        expect(schema).to be_a(String)
+
+        parsed_schema = JSON.parse(schema)
+        expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
+        expect(parsed_schema["type"]).to eq("object")
+        expect(parsed_schema["properties"]["events"]["type"]).to eq("array")
+      end
+
+      it "raises an error for invalid trigger ID" do
+        expect { app.trigger_output_schema("invalid-trigger") }.to raise_error(AppBridge::Error)
+      end
+    end
+
+    describe "#action_input_schema" do
+      it "returns the input schema for http-get action" do
+        schema = app.action_input_schema("http-get")
+        expect(schema).to be_a(String)
+
+        parsed_schema = JSON.parse(schema)
+        expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
+        expect(parsed_schema["type"]).to eq("object")
+        expect(parsed_schema["properties"]["url"]["type"]).to eq("string")
+        expect(parsed_schema["properties"]["url"]["format"]).to eq("uri")
+        expect(parsed_schema["required"]).to include("url")
+      end
+
+      it "returns the input schema for http-post action" do
+        schema = app.action_input_schema("http-post")
+        expect(schema).to be_a(String)
+
+        parsed_schema = JSON.parse(schema)
+        expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
+        expect(parsed_schema["type"]).to eq("object")
+        expect(parsed_schema["properties"]["url"]["type"]).to eq("string")
+        expect(parsed_schema["properties"]["url"]["format"]).to eq("uri")
+        expect(parsed_schema["properties"]["body"]["type"]).to eq("string")
+        expect(parsed_schema["properties"]["body"]["format"]).to eq("code")
+        expect(parsed_schema["required"]).to include("url")
+      end
+
+      it "raises an error for invalid action ID" do
+        expect { app.action_input_schema("invalid-action") }.to raise_error(AppBridge::Error)
+      end
+
+      it "returns the input schema for complex-input action" do
+        schema = app.action_input_schema("complex-input")
+        expect(schema).to be_a(String)
+
+        parsed_schema = JSON.parse(schema)
+        expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
+        expect(parsed_schema["type"]).to eq("object")
+        expect(parsed_schema["properties"]["customer"]["type"]).to eq("object")
+        expect(parsed_schema["properties"]["customer"]["properties"]["status"]["type"]).to eq("string")
+        expect(parsed_schema["properties"]["customer"]["properties"]["status"]["enum"]).to eq(%w[active inactive
+                                                                                                 pending])
+        expect(parsed_schema["properties"]["customer"]["properties"]["orders"]["type"]).to eq("array")
+        # Check nested properties exist and have correct types
+        expect(parsed_schema.dig("properties", "customer", "properties", "orders", "items", "properties", "items",
+                                 "items", "properties", "sku", "type")).to eq("string")
+        expect(parsed_schema.dig("properties", "customer", "properties", "orders", "items", "properties", "items",
+                                 "items", "properties", "quantity", "type")).to eq("integer")
+      end
+    end
+
+    describe "#action_output_schema" do
+      it "returns the output schema for http-get action" do
+        schema = app.action_output_schema("http-get")
+        expect(schema).to be_a(String)
+
+        parsed_schema = JSON.parse(schema)
+        expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
+        expect(parsed_schema["type"]).to eq("object")
+        expect(parsed_schema["properties"]["url"]["type"]).to eq("string")
+        expect(parsed_schema["properties"]["response"]["type"]).to eq("object")
+        expect(parsed_schema["required"]).to include("url", "response")
+      end
+
+      it "returns the output schema for http-post action" do
+        schema = app.action_output_schema("http-post")
+        expect(schema).to be_a(String)
+
+        parsed_schema = JSON.parse(schema)
+        expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
+        expect(parsed_schema["type"]).to eq("object")
+        expect(parsed_schema["properties"]["url"]["type"]).to eq("string")
+        expect(parsed_schema["properties"]["body"]["type"]).to eq("object")
+        expect(parsed_schema["properties"]["response"]["type"]).to eq("object")
+        expect(parsed_schema["required"]).to include("url", "body", "response")
+      end
+
+      it "raises an error for invalid action ID" do
+        expect { app.action_output_schema("invalid-action") }.to raise_error(AppBridge::Error)
+      end
+
+      it "returns the output schema for complex-input action" do
+        schema = app.action_output_schema("complex-input")
+        expect(schema).to be_a(String)
+
+        parsed_schema = JSON.parse(schema)
+        expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
+        expect(parsed_schema["type"]).to eq("object")
+        expect(parsed_schema["properties"]["customer"]["type"]).to eq("object")
+        expect(parsed_schema["properties"]["processed"]["type"]).to eq("boolean")
+        expect(parsed_schema["required"]).to include("customer", "processed")
       end
     end
 
@@ -182,6 +330,36 @@ RSpec.describe AppBridge::App do
           expect(response).to be_a(AppBridge::ActionResponse)
           expect(response.serialized_output).to be_a(String)
           expect(response.serialized_output).to include("test")
+        end
+      end
+
+      context "with complex-input action" do
+        let(:context) do
+          account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
+          AppBridge::ActionContext.new("complex-input", account, JSON.generate({
+                                                                                 customer: {
+                                                                                   status: "active",
+                                                                                   orders: [
+                                                                                     {
+                                                                                       items: [
+                                                                                         { sku: "ABC123", quantity: 2 },
+                                                                                         { sku: "DEF456", quantity: 1 }
+                                                                                       ]
+                                                                                     }
+                                                                                   ]
+                                                                                 }
+                                                                               }))
+        end
+
+        it "returns a response with processed customer data" do
+          response = app.execute_action(context)
+          expect(response).to be_a(AppBridge::ActionResponse)
+          expect(response.serialized_output).to be_a(String)
+
+          output = JSON.parse(response.serialized_output)
+          expect(output["customer"]["status"]).to eq("active")
+          expect(output["customer"]["orders"][0]["items"]).to have_attributes(length: 2)
+          expect(output["processed"]).to be true
         end
       end
 

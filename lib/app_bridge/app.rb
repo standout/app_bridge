@@ -29,6 +29,22 @@ module AppBridge
       response
     end
 
+    def action_input_schema(action_id)
+      _rust_action_input_schema(action_id)
+    end
+
+    def action_output_schema(action_id)
+      _rust_action_output_schema(action_id)
+    end
+
+    def trigger_input_schema(trigger_id)
+      _rust_trigger_input_schema(trigger_id)
+    end
+
+    def trigger_output_schema(trigger_id)
+      _rust_trigger_output_schema(trigger_id)
+    end
+
     def timeout_seconds
       30 # seconds
     end
