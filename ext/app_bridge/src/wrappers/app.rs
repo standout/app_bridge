@@ -76,10 +76,76 @@ impl MutRApp {
                   if let Some(wit_err) = err.downcast_ref::<AppError>() {
                       Err(wit_err.clone().into())
                   } else {
-                      Err(AppError {
-                          code: ErrorCode::InternalError,
-                          message: format!("Unexpected error: {:?}", err),
-                      }.into())
+                      Err(Error::new(
+                          magnus::exception::runtime_error(),
+                          format!("Unexpected error: {:?}", err)
+                      ))
+                  }
+                },
+            }
+        } else {
+            Err(AppError {
+                code: ErrorCode::InternalError,
+                message: "App instance couln't be initialized".to_string(),
+            }.into())
+        }
+    }
+
+    pub fn trigger_input_schema(&self, trigger_id: String) -> Result<String, Error> {
+        let binding = self.0.borrow();
+
+        let mut instance = binding.instance.borrow_mut();
+        let mut store = binding.store.borrow_mut();
+
+        if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
+            match instance.standout_app_triggers().call_input_schema(store, &trigger_id) {
+                Ok(result) => {
+                    match result {
+                        Ok(schema) => Ok(schema),
+                        Err(err) => Err(err.into())
+                    }
+                },
+                Err(err) => {
+                  if let Some(wit_err) = err.downcast_ref::<AppError>() {
+                      Err(wit_err.clone().into())
+                  } else {
+                      Err(Error::new(
+                          magnus::exception::runtime_error(),
+                          format!("Unexpected error: {:?}", err)
+                      ))
+                  }
+                },
+            }
+        } else {
+            Err(AppError {
+                code: ErrorCode::InternalError,
+                message: "App instance couln't be initialized".to_string(),
+            }.into())
+        }
+    }
+
+    pub fn trigger_output_schema(&self, trigger_id: String) -> Result<String, Error> {
+        let binding = self.0.borrow();
+
+        let mut instance = binding.instance.borrow_mut();
+        let mut store = binding.store.borrow_mut();
+
+        if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
+            match instance.standout_app_triggers().call_output_schema(store, &trigger_id) {
+                Ok(result) => {
+                    match result {
+                        Ok(schema) => Ok(schema),
+                        Err(err) => Err(err.into())
+                    }
+                },
+                Err(err) => {
+                  if let Some(wit_err) = err.downcast_ref::<AppError>() {
+                      Err(wit_err.clone().into())
+                  } else {
+                      Err(Error::new(
+                          magnus::exception::runtime_error(),
+                          format!("Unexpected error: {:?}", err)
+                      ))
                   }
                 },
             }
@@ -154,10 +220,76 @@ impl MutRApp {
                   if let Some(wit_err) = err.downcast_ref::<AppError>() {
                       Err(wit_err.clone().into())
                   } else {
-                      Err(AppError {
-                          code: ErrorCode::InternalError,
-                          message: format!("Unexpected error: {:?}", err),
-                      }.into())
+                      Err(Error::new(
+                          magnus::exception::runtime_error(),
+                          format!("Unexpected error: {:?}", err)
+                      ))
+                  }
+                },
+            }
+        } else {
+            Err(AppError {
+                code: ErrorCode::InternalError,
+                message: "App instance couln't be initialized".to_string(),
+            }.into())
+        }
+    }
+
+    pub fn action_input_schema(&self, action_id: String) -> Result<String, Error> {
+        let binding = self.0.borrow();
+
+        let mut instance = binding.instance.borrow_mut();
+        let mut store = binding.store.borrow_mut();
+
+        if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
+            match instance.standout_app_actions().call_input_schema(store, &action_id) {
+                Ok(result) => {
+                    match result {
+                        Ok(schema) => Ok(schema),
+                        Err(err) => Err(err.into())
+                    }
+                },
+                Err(err) => {
+                  if let Some(wit_err) = err.downcast_ref::<AppError>() {
+                      Err(wit_err.clone().into())
+                  } else {
+                      Err(Error::new(
+                          magnus::exception::runtime_error(),
+                          format!("Unexpected error: {:?}", err)
+                      ))
+                  }
+                },
+            }
+        } else {
+            Err(AppError {
+                code: ErrorCode::InternalError,
+                message: "App instance couln't be initialized".to_string(),
+            }.into())
+        }
+    }
+
+    pub fn action_output_schema(&self, action_id: String) -> Result<String, Error> {
+        let binding = self.0.borrow();
+
+        let mut instance = binding.instance.borrow_mut();
+        let mut store = binding.store.borrow_mut();
+
+        if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
+            match instance.standout_app_actions().call_output_schema(store, &action_id) {
+                Ok(result) => {
+                    match result {
+                        Ok(schema) => Ok(schema),
+                        Err(err) => Err(err.into())
+                    }
+                },
+                Err(err) => {
+                  if let Some(wit_err) = err.downcast_ref::<AppError>() {
+                      Err(wit_err.clone().into())
+                  } else {
+                      Err(Error::new(
+                          magnus::exception::runtime_error(),
+                          format!("Unexpected error: {:?}", err)
+                      ))
                   }
                 },
             }

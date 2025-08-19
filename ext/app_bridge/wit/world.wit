@@ -136,6 +136,14 @@ interface triggers {
 
   trigger-ids: func() -> result<list<string>, app-error>;
 
+  // Get the input schema for a specific trigger
+  // Returns a JSON Schema Draft 2020-12 schema as a string
+  input-schema: func(trigger-id: string) -> result<string, app-error>;
+
+  // Get the output schema for a specific trigger
+  // Returns a JSON Schema Draft 2020-12 schema as a string
+  output-schema: func(trigger-id: string) -> result<string, app-error>;
+
   // Fetch events
   //
   // There are some limitations to the function:
@@ -164,6 +172,14 @@ interface actions {
   use types.{action-context, action-response, app-error};
 
   action-ids: func() -> result<list<string>, app-error>;
+
+  // Get the input schema for a specific action
+  // Returns a JSON Schema Draft 2020-12 schema as a string
+  input-schema: func(action-id: string) -> result<string, app-error>;
+
+  // Get the output schema for a specific action
+  // Returns a JSON Schema Draft 2020-12 schema as a string
+  output-schema: func(action-id: string) -> result<string, app-error>;
 
   // Execute an action
   //
