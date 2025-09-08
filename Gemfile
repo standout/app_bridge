@@ -12,6 +12,6 @@ gem "rake-compiler"
 gem "rspec", "~> 3.0"
 gem "rspec-benchmark"
 
-gem "rubocop", "~> 1.75"
+gem "rubocop", "~> 1.80"
 
 gem "json"
