@@ -50,10 +50,11 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     trigger_response_class.define_method("events", method!(RTriggerResponse::events, 0))?;
 
     let trigger_context_class = module.define_class("TriggerContext", ruby.class_object())?;
-    trigger_context_class.define_singleton_method("new", function!(RTriggerContext::new, 3))?;
+    trigger_context_class.define_singleton_method("new", function!(RTriggerContext::new, 4))?;
     trigger_context_class.define_method("trigger_id", method!(RTriggerContext::trigger_id, 0))?;
     trigger_context_class.define_method("account", method!(RTriggerContext::account, 0))?;
     trigger_context_class.define_method("store", method!(RTriggerContext::store, 0))?;
+    trigger_context_class.define_method("serialized_input", method!(RTriggerContext::serialized_input, 0))?;
 
     // Define the Action classes
     let action_context_class = module.define_class("ActionContext", ruby.class_object())?;

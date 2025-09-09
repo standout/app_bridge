@@ -91,14 +91,15 @@ impl MutRApp {
         }
     }
 
-    pub fn trigger_input_schema(&self, trigger_id: String) -> Result<String, Error> {
+    pub fn trigger_input_schema(&self, context: RTriggerContext) -> Result<String, Error> {
         let binding = self.0.borrow();
 
         let mut instance = binding.instance.borrow_mut();
         let mut store = binding.store.borrow_mut();
 
         if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
-            match instance.standout_app_triggers().call_input_schema(store, &trigger_id) {
+            let context_ctx = context.into();
+            match instance.standout_app_triggers().call_input_schema(store, &context_ctx) {
                 Ok(result) => {
                     match result {
                         Ok(schema) => Ok(schema),
@@ -124,14 +125,15 @@ impl MutRApp {
         }
     }
 
-    pub fn trigger_output_schema(&self, trigger_id: String) -> Result<String, Error> {
+    pub fn trigger_output_schema(&self, context: RTriggerContext) -> Result<String, Error> {
         let binding = self.0.borrow();
 
         let mut instance = binding.instance.borrow_mut();
         let mut store = binding.store.borrow_mut();
 
         if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
-            match instance.standout_app_triggers().call_output_schema(store, &trigger_id) {
+            let context_ctx = context.into();
+            match instance.standout_app_triggers().call_output_schema(store, &context_ctx) {
                 Ok(result) => {
                     match result {
                         Ok(schema) => Ok(schema),
@@ -235,14 +237,15 @@ impl MutRApp {
         }
     }
 
-    pub fn action_input_schema(&self, action_id: String) -> Result<String, Error> {
+    pub fn action_input_schema(&self, context: RActionContext) -> Result<String, Error> {
         let binding = self.0.borrow();
 
         let mut instance = binding.instance.borrow_mut();
         let mut store = binding.store.borrow_mut();
 
         if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
-            match instance.standout_app_actions().call_input_schema(store, &action_id) {
+            let context_ctx = context.into();
+            match instance.standout_app_actions().call_input_schema(store, &context_ctx) {
                 Ok(result) => {
                     match result {
                         Ok(schema) => Ok(schema),
@@ -268,14 +271,15 @@ impl MutRApp {
         }
     }
 
-    pub fn action_output_schema(&self, action_id: String) -> Result<String, Error> {
+    pub fn action_output_schema(&self, context: RActionContext) -> Result<String, Error> {
         let binding = self.0.borrow();
 
         let mut instance = binding.instance.borrow_mut();
         let mut store = binding.store.borrow_mut();
 
         if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
-            match instance.standout_app_actions().call_output_schema(store, &action_id) {
+            let context_ctx = context.into();
+            match instance.standout_app_actions().call_output_schema(store, &context_ctx) {
                 Ok(result) => {
                     match result {
                         Ok(schema) => Ok(schema),
