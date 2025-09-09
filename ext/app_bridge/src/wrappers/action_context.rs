@@ -5,22 +5,29 @@ use super::account::RAccount;
 #[magnus::wrap(class = "AppBridge::ActionContext")]
 pub struct RActionContext {
     inner: ActionContext,
-    wrapped_account: RAccount,
+    wrapped_account: Option<RAccount>,
 }
 
 impl RActionContext {
     pub fn new(action_id: String, account: Value, serialized_input: String) -> Self {
-        let account: RAccount = TryConvert::try_convert(account).unwrap();
+        let wrapped_account = if account.is_nil() {
+            None
+        } else {
+            match TryConvert::try_convert(account) {
+                Ok(acc) => Some(acc),
+                Err(_) => None,
+            }
+        };
 
         let inner = ActionContext {
             action_id: action_id,
-            account: account.clone().into(),
+            account: wrapped_account.as_ref().map(|acc: &RAccount| acc.clone().into()),
             serialized_input,
         };
 
         Self {
             inner,
-            wrapped_account: account.clone(),
+            wrapped_account,
         }
     }
 
@@ -28,7 +35,7 @@ impl RActionContext {
         self.inner.action_id.clone()
     }
 
-    pub fn account(&self) -> RAccount {
+    pub fn account(&self) -> Option<RAccount> {
         self.wrapped_account.clone()
     }
 
@@ -43,17 +50,24 @@ impl TryConvert for RActionContext {
         let serialized_input: String = val.funcall("serialized_input", ())?;
         let action_id: String = val.funcall("action_id", ())?;
 
-        let account: RAccount = TryConvert::try_convert(account_val)?;
+        let wrapped_account = if account_val.is_nil() {
+            None
+        } else {
+            match TryConvert::try_convert(account_val) {
+                Ok(acc) => Some(acc),
+                Err(_) => None,
+            }
+        };
 
         let inner = ActionContext {
             action_id: action_id,
-            account: account.clone().inner,
+            account: wrapped_account.as_ref().map(|acc: &RAccount| acc.clone().inner),
             serialized_input,
         };
 
         Ok(Self {
             inner,
-            wrapped_account: account.clone(),
+            wrapped_account,
         })
     }
 }

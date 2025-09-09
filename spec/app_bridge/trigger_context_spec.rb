@@ -8,7 +8,7 @@ RSpec.describe AppBridge::TriggerContext do
   let(:store) { "store" }
 
   subject(:trigger_context) do
-    AppBridge::TriggerContext.new(trigger_id, account, store)
+    AppBridge::TriggerContext.new(trigger_id, account, store, "{}")
   end
 
   it { is_expected.to be_a(AppBridge::TriggerContext) }
@@ -26,5 +26,9 @@ RSpec.describe AppBridge::TriggerContext do
 
   it "has a store" do
     expect(trigger_context.store).to eq(store)
+  end
+
+  it "has serialized_input" do
+    expect(trigger_context.serialized_input).to eq("{}")
   end
 end

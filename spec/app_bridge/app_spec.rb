@@ -30,7 +30,7 @@ RSpec.describe AppBridge::App do
     describe "#fetch_events(context)" do
       let(:context) do
         account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
-        AppBridge::TriggerContext.new("new-todos", account, "world")
+        AppBridge::TriggerContext.new("new-todos", account, "world", "{}")
       end
 
       it "returns a response with new store" do
@@ -145,35 +145,53 @@ RSpec.describe AppBridge::App do
     end
 
     describe "#trigger_input_schema" do
-      it "returns the input schema for new-todos trigger" do
-        schema = app.trigger_input_schema("new-todos")
+      let(:base_account) { AppBridge::Account.new("1", "Base Account", JSON.generate({})) }
+      let(:custom_account) { AppBridge::Account.new("2", "Custom Account", JSON.generate({ custom: true })) }
+
+      it "returns the input schema for new-todos trigger with base account" do
+        context = AppBridge::TriggerContext.new("new-todos", base_account, "", "{}")
+        schema = app.trigger_input_schema(context)
         expect(schema).to be_a(String)
 
         parsed_schema = JSON.parse(schema)
         expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
         expect(parsed_schema["type"]).to eq("object")
-        expect(parsed_schema["properties"]["since"]["type"]).to eq("string")
-        expect(parsed_schema["properties"]["since"]["description"]).to eq("Fetch events since ISO timestamp")
+        expect(parsed_schema["properties"]["include_extra_data"]["type"]).to eq("boolean")
+        expect(parsed_schema["properties"]["include_extra_data"]["description"]).to eq(
+          "Whether to include additional data in the response"
+        )
+        # Base schema should not have custom fields
+        expect(parsed_schema["properties"]).not_to have_key("include_custom_data")
       end
 
-      it "returns the input schema for new-posts trigger" do
-        schema = app.trigger_input_schema("new-posts")
+      it "returns the input schema for new-posts trigger with custom account" do
+        context = AppBridge::TriggerContext.new("new-posts", custom_account, "", "{}")
+        schema = app.trigger_input_schema(context)
         expect(schema).to be_a(String)
 
         parsed_schema = JSON.parse(schema)
         expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
         expect(parsed_schema["type"]).to eq("object")
-        expect(parsed_schema["properties"]["since"]["type"]).to eq("string")
+        expect(parsed_schema["properties"]["include_extra_data"]["type"]).to eq("boolean")
+        # Custom account should have additional custom field
+        expect(parsed_schema["properties"]["include_custom_data"]["type"]).to eq("boolean")
+        expect(parsed_schema["properties"]["include_custom_data"]["description"])
+          .to eq("Whether to include custom data for premium accounts")
       end
 
       it "raises an error for invalid trigger ID" do
-        expect { app.trigger_input_schema("invalid-trigger") }.to raise_error(AppBridge::Error)
+        context = AppBridge::TriggerContext.new("invalid-trigger", base_account, "", "{}")
+        expect { app.trigger_input_schema(context) }.to raise_error(AppBridge::Error)
       end
     end
 
     describe "#trigger_output_schema" do
-      it "returns the output schema for new-todos trigger" do
-        schema = app.trigger_output_schema("new-todos")
+      let(:base_account) { AppBridge::Account.new("1", "Base Account", JSON.generate({})) }
+      let(:custom_account) { AppBridge::Account.new("2", "Custom Account", JSON.generate({ custom: true })) }
+
+      it "returns the output schema for new-todos trigger with base account" do
+        context = AppBridge::TriggerContext.new("new-todos", base_account, "", "{}")
+        schema = app.trigger_output_schema(context)
         expect(schema).to be_a(String)
 
         parsed_schema = JSON.parse(schema)
@@ -181,26 +199,39 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["type"]).to eq("object")
         expect(parsed_schema["properties"]["events"]["type"]).to eq("array")
         expect(parsed_schema["properties"]["store"]["type"]).to eq("string")
+        # Base schema should not have custom fields
+        expect(parsed_schema["properties"]).not_to have_key("custom_metadata")
       end
 
-      it "returns the output schema for new-posts trigger" do
-        schema = app.trigger_output_schema("new-posts")
+      it "returns the output schema for new-posts trigger with custom account" do
+        context = AppBridge::TriggerContext.new("new-posts", custom_account, "", "{}")
+        schema = app.trigger_output_schema(context)
         expect(schema).to be_a(String)
 
         parsed_schema = JSON.parse(schema)
         expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
         expect(parsed_schema["type"]).to eq("object")
         expect(parsed_schema["properties"]["events"]["type"]).to eq("array")
+        # Custom account should have additional custom metadata field
+        expect(parsed_schema["properties"]["custom_metadata"]["type"]).to eq("object")
+        expect(parsed_schema["properties"]["custom_metadata"]["description"]).to eq(
+          "Additional metadata for premium accounts"
+        )
       end
 
       it "raises an error for invalid trigger ID" do
-        expect { app.trigger_output_schema("invalid-trigger") }.to raise_error(AppBridge::Error)
+        context = AppBridge::TriggerContext.new("invalid-trigger", base_account, "", "{}")
+        expect { app.trigger_output_schema(context) }.to raise_error(AppBridge::Error)
       end
     end
 
     describe "#action_input_schema" do
-      it "returns the input schema for http-get action" do
-        schema = app.action_input_schema("http-get")
+      let(:base_account) { AppBridge::Account.new("1", "Base Account", JSON.generate({})) }
+      let(:custom_account) { AppBridge::Account.new("2", "Custom Account", JSON.generate({ custom: true })) }
+
+      it "returns the input schema for http-get action with base account" do
+        context = AppBridge::ActionContext.new("http-get", base_account, "{}")
+        schema = app.action_input_schema(context)
         expect(schema).to be_a(String)
 
         parsed_schema = JSON.parse(schema)
@@ -209,10 +240,13 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["properties"]["url"]["type"]).to eq("string")
         expect(parsed_schema["properties"]["url"]["format"]).to eq("uri")
         expect(parsed_schema["required"]).to include("url")
+        # Base schema should not have custom fields
+        expect(parsed_schema["properties"]).not_to have_key("custom_headers")
       end
 
-      it "returns the input schema for http-post action" do
-        schema = app.action_input_schema("http-post")
+      it "returns the input schema for http-post action with custom account" do
+        context = AppBridge::ActionContext.new("http-post", custom_account, "{}")
+        schema = app.action_input_schema(context)
         expect(schema).to be_a(String)
 
         parsed_schema = JSON.parse(schema)
@@ -223,14 +257,21 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["properties"]["body"]["type"]).to eq("string")
         expect(parsed_schema["properties"]["body"]["format"]).to eq("code")
         expect(parsed_schema["required"]).to include("url")
+        # Custom account should have additional custom headers field
+        expect(parsed_schema["properties"]["custom_headers"]["type"]).to eq("object")
+        expect(parsed_schema["properties"]["custom_headers"]["description"]).to eq(
+          "Custom headers for premium accounts"
+        )
       end
 
       it "raises an error for invalid action ID" do
-        expect { app.action_input_schema("invalid-action") }.to raise_error(AppBridge::Error)
+        context = AppBridge::ActionContext.new("invalid-action", base_account, "{}")
+        expect { app.action_input_schema(context) }.to raise_error(AppBridge::Error)
       end
 
-      it "returns the input schema for complex-input action" do
-        schema = app.action_input_schema("complex-input")
+      it "returns the input schema for complex-input action with base account" do
+        context = AppBridge::ActionContext.new("complex-input", base_account, "{}")
+        schema = app.action_input_schema(context)
         expect(schema).to be_a(String)
 
         parsed_schema = JSON.parse(schema)
@@ -246,12 +287,18 @@ RSpec.describe AppBridge::App do
                                  "items", "properties", "sku", "type")).to eq("string")
         expect(parsed_schema.dig("properties", "customer", "properties", "orders", "items", "properties", "items",
                                  "items", "properties", "quantity", "type")).to eq("integer")
+        # Base schema should not have custom fields
+        expect(parsed_schema["properties"]).not_to have_key("custom_options")
       end
     end
 
     describe "#action_output_schema" do
-      it "returns the output schema for http-get action" do
-        schema = app.action_output_schema("http-get")
+      let(:base_account) { AppBridge::Account.new("1", "Base Account", JSON.generate({})) }
+      let(:custom_account) { AppBridge::Account.new("2", "Custom Account", JSON.generate({ custom: true })) }
+
+      it "returns the output schema for http-get action with base account" do
+        context = AppBridge::ActionContext.new("http-get", base_account, "{}")
+        schema = app.action_output_schema(context)
         expect(schema).to be_a(String)
 
         parsed_schema = JSON.parse(schema)
@@ -260,10 +307,13 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["properties"]["url"]["type"]).to eq("string")
         expect(parsed_schema["properties"]["response"]["type"]).to eq("object")
         expect(parsed_schema["required"]).to include("url", "response")
+        # Base schema should not have custom fields
+        expect(parsed_schema["properties"]).not_to have_key("custom_metadata")
       end
 
-      it "returns the output schema for http-post action" do
-        schema = app.action_output_schema("http-post")
+      it "returns the output schema for http-post action with custom account" do
+        context = AppBridge::ActionContext.new("http-post", custom_account, "{}")
+        schema = app.action_output_schema(context)
         expect(schema).to be_a(String)
 
         parsed_schema = JSON.parse(schema)
@@ -273,22 +323,31 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["properties"]["body"]["type"]).to eq("object")
         expect(parsed_schema["properties"]["response"]["type"]).to eq("object")
         expect(parsed_schema["required"]).to include("url", "body", "response")
+        # Custom account should have additional custom metadata field
+        expect(parsed_schema["properties"]["custom_metadata"]["type"]).to eq("object")
+        expect(parsed_schema["properties"]["custom_metadata"]["description"]).to eq(
+          "Additional metadata for premium accounts"
+        )
       end
 
       it "raises an error for invalid action ID" do
-        expect { app.action_output_schema("invalid-action") }.to raise_error(AppBridge::Error)
+        context = AppBridge::ActionContext.new("invalid-action", base_account, "{}")
+        expect { app.action_output_schema(context) }.to raise_error(AppBridge::Error)
       end
 
-      it "returns the output schema for complex-input action" do
-        schema = app.action_output_schema("complex-input")
+      it "returns the output schema for complex-input action with base account" do
+        context = AppBridge::ActionContext.new("complex-input", base_account, "{}")
+        schema = app.action_output_schema(context)
         expect(schema).to be_a(String)
 
         parsed_schema = JSON.parse(schema)
         expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
         expect(parsed_schema["type"]).to eq("object")
         expect(parsed_schema["properties"]["customer"]["type"]).to eq("object")
-        expect(parsed_schema["properties"]["processed"]["type"]).to eq("boolean")
-        expect(parsed_schema["required"]).to include("customer", "processed")
+        expect(parsed_schema["properties"]["metadata"]["type"]).to eq("object")
+        expect(parsed_schema["required"]).to include("customer")
+        # Base schema should not have custom fields
+        expect(parsed_schema["properties"]).not_to have_key("custom_analytics")
       end
     end
 
@@ -359,7 +418,6 @@ RSpec.describe AppBridge::App do
           output = JSON.parse(response.serialized_output)
           expect(output["customer"]["status"]).to eq("active")
           expect(output["customer"]["orders"][0]["items"]).to have_attributes(length: 2)
-          expect(output["processed"]).to be true
         end
       end
 
