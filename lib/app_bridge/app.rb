@@ -5,9 +5,10 @@ require "timeout"
 module AppBridge
   # An app that can be used to fetch events and execute actions.
   class App
-    def initialize(component_path)
+    def initialize(component_path, environment_variables: {})
       @component_path = component_path
-      initialize_bridge
+      @environment_variables = environment_variables
+      _rust_initialize(component_path, environment_variables)
     rescue StandardError
       raise InternalError, "Incompatible WASM file version"
     end
@@ -50,10 +51,6 @@ module AppBridge
     end
 
     private
-
-    def initialize_bridge
-      _rust_initialize(@component_path)
-    end
 
     def validate_number_of_events!(events)
       return if events.size <= 100

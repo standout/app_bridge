@@ -5,7 +5,8 @@ RSpec.describe AppBridge::App do
 
   shared_examples "example standout app" do |wasm_file|
     let(:component_path) { File.join(components_path, wasm_file) }
-    subject(:app) { AppBridge::App.new(component_path) }
+    let(:test_env_vars) { ENV["APP_BRIDGE_TEST_MODE"] ? { "APP_BRIDGE_TEST_MODE" => ENV["APP_BRIDGE_TEST_MODE"] } : {} }
+    subject(:app) { AppBridge::App.new(component_path, environment_variables: test_env_vars) }
 
     describe "#trigger_ids" do
       it "returns an array of trigger ids" do
@@ -446,6 +447,65 @@ RSpec.describe AppBridge::App do
           expect { app.execute_action(context) }
             .not_to raise_error
         end
+      end
+    end
+
+    describe "environment variables" do
+      let(:env_vars) { { "API_KEY" => "test-key", "DEBUG" => "true", "CUSTOM_VAR" => "custom-value" } }
+      let(:app_with_env) { AppBridge::App.new(component_path, environment_variables: env_vars.merge(test_env_vars)) }
+
+      it "initializes with environment variables" do
+        expect(app_with_env).to be_a(AppBridge::App)
+      end
+
+      it "works with trigger contexts" do
+        context = AppBridge::TriggerContext.new("new-todos", nil, "{}", "{}")
+        expect { app_with_env.trigger_input_schema(context) }.not_to raise_error
+      end
+
+      it "works with action contexts" do
+        context = AppBridge::ActionContext.new("http-get", nil, "{}")
+        expect { app_with_env.action_input_schema(context) }.not_to raise_error
+      end
+
+      it "can execute actions with environment variables" do
+        context = AppBridge::ActionContext.new("http-get", nil, '{"url": "https://httpbin.org/get"}')
+        expect { app_with_env.execute_action(context) }.not_to raise_error
+      end
+
+      it "returns environment variables in complex-input action output" do
+        context = AppBridge::ActionContext.new("complex-input", nil,
+                                               '{"customer": {"status": "active", "orders": []}}')
+        response = app_with_env.execute_action(context)
+
+        expect(response).to be_a(AppBridge::ActionResponse)
+        output = JSON.parse(response.serialized_output)
+
+        expect(output).to have_key("environment_variables")
+        expect(output["environment_variables"]).to be_a(Hash)
+
+        returned_env_vars = output["environment_variables"]
+        expect(returned_env_vars["API_KEY"]).to eq("test-key")
+        expect(returned_env_vars["CUSTOM_VAR"]).to eq("custom-value")
+      end
+
+      it "handles missing environment variables gracefully" do
+        # Test with empty environment variables
+        app_empty = AppBridge::App.new(component_path, environment_variables: test_env_vars)
+        context = AppBridge::ActionContext.new("complex-input", nil,
+                                               '{"customer": {"status": "active", "orders": []}}')
+        response = app_empty.execute_action(context)
+
+        expect(response).to be_a(AppBridge::ActionResponse)
+        output = JSON.parse(response.serialized_output)
+
+        expect(output).to have_key("environment_variables")
+        expect(output["environment_variables"]).to be_a(Hash)
+
+        # Should have the test mode environment variable when running in test mode
+        env_vars = output["environment_variables"]
+        expect(env_vars).to have_key("APP_BRIDGE_TEST_MODE")
+        expect(env_vars["APP_BRIDGE_TEST_MODE"]).to eq("1")
       end
     end
   end

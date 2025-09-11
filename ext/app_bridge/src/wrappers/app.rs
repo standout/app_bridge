@@ -1,5 +1,6 @@
 use magnus::{Error, TryConvert, Value};
 use std::cell::RefCell;
+use std::collections::HashMap;
 use wasmtime::Store;
 
 use crate::app_state::AppState;
@@ -26,7 +27,7 @@ pub struct RApp {
 pub struct MutRApp(RefCell<RApp>);
 
 impl MutRApp {
-    pub fn initialize(&self, component_path: String) -> Result<(), Error> {
+    pub fn initialize(&self, component_path: String, env_vars: HashMap<String, String>) -> Result<(), Error> {
         let mut this = self.0.borrow_mut();
         let engine = build_engine();
         let linker = build_linker(&engine).map_err(|e| {
@@ -35,7 +36,11 @@ impl MutRApp {
                 format!("Failed to build linker: {}", e)
             )
         })?;
-        let mut store = build_store(&engine);
+        let mut store = if env_vars.is_empty() {
+            build_store(&engine, None)
+        } else {
+            build_store(&engine, Some(env_vars))
+        };
 
         let app = app(component_path.clone(), engine, &mut store, linker).map_err(|e| {
             if e.to_string().contains("Incompatible WASM file version") {
