@@ -1,4 +1,4 @@
-package standout:app@2.0.1;
+package standout:app@2.1.0;
 
 interface types {
   // The trigger-store is a string that is used to store data between trigger
@@ -212,6 +212,11 @@ interface actions {
   execute: func(context: action-context) -> result<action-response, app-error>;
 }
 
+interface environment {
+  // Get all environment variables
+  get-env-vars: func() -> list<tuple<string, string>>;
+}
+
 interface http {
   record response {
     status: u16,
@@ -264,6 +269,7 @@ interface http {
 
 world bridge {
   import http;
+  import environment;
   export triggers;
   export actions;
 }

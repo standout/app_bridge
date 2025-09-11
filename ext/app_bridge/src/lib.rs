@@ -70,14 +70,13 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     // Define the App class
     let app_class = module.define_class("App", ruby.class_object())?;
     app_class.define_alloc_func::<MutRApp>();
-    app_class.define_method("initialize", method!(MutRApp::initialize, 1))?;
     app_class.define_method("trigger_ids", method!(MutRApp::trigger_ids, 0))?;
     app_class.define_method("action_ids", method!(MutRApp::action_ids, 0))?;
     app_class.define_method("action_input_schema", method!(MutRApp::action_input_schema, 1))?;
     app_class.define_method("action_output_schema", method!(MutRApp::action_output_schema, 1))?;
     app_class.define_method("trigger_input_schema", method!(MutRApp::trigger_input_schema, 1))?;
     app_class.define_method("trigger_output_schema", method!(MutRApp::trigger_output_schema, 1))?;
-    app_class.define_private_method("_rust_initialize", method!(MutRApp::initialize, 1))?;
+    app_class.define_private_method("_rust_initialize", method!(MutRApp::initialize, 2))?;
     app_class.define_private_method("_rust_fetch_events", method!(MutRApp::rb_fetch_events, 1))?;
     app_class.define_private_method("_rust_execute_action", method!(MutRApp::rb_execute_action, 1))?;
 

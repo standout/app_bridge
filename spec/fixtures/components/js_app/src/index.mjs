@@ -264,9 +264,21 @@ const complexInputOutputSchema = `{
         "type": "string",
         "title": "Field Value"
       }
+    },
+    "environment_variables": {
+      "type": "object",
+      "description": "Environment variables passed to the app at runtime",
+      "propertyNames": {
+        "type": "string",
+        "title": "Variable Name"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "title": "Variable Value"
+      }
     }
   },
-  "required": ["customer"],
+  "required": ["customer", "environment_variables"],
   "additionalProperties": false
 }`;
 

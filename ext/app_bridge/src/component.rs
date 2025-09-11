@@ -1,4 +1,5 @@
 use std::result::Result::Ok;
+use std::collections::HashMap;
 use wasmtime::component::{bindgen, Component, Linker};
 use wasmtime::{Engine, Result, Store};
 use wasmtime_wasi::WasiCtxBuilder;
@@ -18,18 +19,27 @@ pub fn build_linker(engine: &Engine) -> Result<Linker<AppState>> {
     let mut linker = Linker::<AppState>::new(&engine);
     wasmtime_wasi::add_to_linker_sync(&mut linker)?;
     standout::app::http::add_to_linker(&mut linker, |s| s)?;
+    standout::app::environment::add_to_linker(&mut linker, |s| s)?;
 
     Ok(linker)
 }
 
-pub fn build_store(engine: &Engine) -> Store<AppState> {
-    let builder = WasiCtxBuilder::new().build();
+pub fn build_store(engine: &Engine, env_vars: Option<HashMap<String, String>>) -> Store<AppState> {
+    let mut builder = WasiCtxBuilder::new();
 
-    // ... configure `builder` more to add env vars, args, etc ...
+    // Add environment variables to WASI context if provided
+    if let Some(env_vars) = &env_vars {
+        for (key, value) in env_vars {
+            builder.env(key, value);
+        }
+    }
 
-    let store = Store::new(&engine, AppState::new(builder));
+    let ctx = builder.build();
 
-    store
+    // Create AppState with or without environment variables
+    let app_state = AppState::new(ctx, env_vars);
+
+    Store::new(&engine, app_state)
 }
 
 pub fn app(
@@ -61,7 +71,7 @@ impl Default for Bridge {
     fn default() -> Self {
         let file_path = "spec/fixtures/components/example_app.wasm";
         let engine = Engine::default();
-        let mut store = build_store(&engine);
+        let mut store = build_store(&engine, None);
         let linker = build_linker(&engine).unwrap();
         let instant = app(file_path.to_string(), engine, &mut store, linker);
 
