@@ -9,26 +9,26 @@ pub struct RActionContext {
 }
 
 impl RActionContext {
-    pub fn new(action_id: String, account: Value, serialized_input: String) -> Self {
-        let wrapped_account = if account.is_nil() {
-            None
-        } else {
-            match TryConvert::try_convert(account) {
-                Ok(acc) => Some(acc),
-                Err(_) => None,
-            }
+    pub fn new(action_id: String, account: Value, serialized_input: String) -> Result<Self, Error> {
+        if account.is_nil() {
+            return Err(Error::new(magnus::exception::runtime_error(), "Account is required"));
+        }
+
+        let wrapped_account: RAccount = match TryConvert::try_convert(account) {
+            Ok(acc) => acc,
+            Err(_) => return Err(Error::new(magnus::exception::runtime_error(), "Account is required")),
         };
 
         let inner = ActionContext {
             action_id: action_id,
-            account: wrapped_account.as_ref().map(|acc: &RAccount| acc.clone().into()),
+            account: wrapped_account.clone().into(),
             serialized_input,
         };
 
-        Self {
+        Ok(Self {
             inner,
-            wrapped_account,
-        }
+            wrapped_account: Some(wrapped_account),
+        })
     }
 
     pub fn action_id(&self) -> String {
@@ -50,24 +50,24 @@ impl TryConvert for RActionContext {
         let serialized_input: String = val.funcall("serialized_input", ())?;
         let action_id: String = val.funcall("action_id", ())?;
 
-        let wrapped_account = if account_val.is_nil() {
-            None
-        } else {
-            match TryConvert::try_convert(account_val) {
-                Ok(acc) => Some(acc),
-                Err(_) => None,
-            }
+        if account_val.is_nil() {
+            return Err(Error::new(magnus::exception::runtime_error(), "Account is required"));
+        }
+
+        let wrapped_account: RAccount = match TryConvert::try_convert(account_val) {
+            Ok(acc) => acc,
+            Err(_) => return Err(Error::new(magnus::exception::runtime_error(), "Account is required")),
         };
 
         let inner = ActionContext {
             action_id: action_id,
-            account: wrapped_account.as_ref().map(|acc: &RAccount| acc.clone().inner),
+            account: wrapped_account.clone().inner,
             serialized_input,
         };
 
         Ok(Self {
             inner,
-            wrapped_account,
+            wrapped_account: Some(wrapped_account),
         })
     }
 }

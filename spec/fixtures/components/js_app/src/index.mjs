@@ -292,26 +292,24 @@ export const triggers = {
   },
 
   inputSchema(context) {
-    // Check if account has custom field enabled
-    if (context && context.account) {
-      try {
-        const accountData = JSON.parse(context.account.serializedData);
-        if (accountData.custom === true && context.triggerId === "new-posts") {
-          // Return enhanced schema with custom field for new-posts trigger
-          return JSON.stringify({
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "include_extra_data": { "type": "boolean", "description": "Whether to include additional data in the response" },
-              "include_custom_data": { "type": "boolean", "description": "Whether to include custom data for premium accounts" }
-            },
-            "required": ["include_extra_data"],
-            "additionalProperties": false
-          });
-        }
-      } catch (e) {
-        // Ignore parsing errors and fall back to base schema
+    try {
+      const accountData = JSON.parse(context.account.serializedData);
+      if (accountData.custom === true && context.triggerId === "new-posts") {
+        // Return enhanced schema with custom field for new-posts trigger
+        return JSON.stringify({
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "include_extra_data": { "type": "boolean", "description": "Whether to include additional data in the response" },
+            "include_custom_data": { "type": "boolean", "description": "Whether to include custom data for premium accounts" },
+            "test_string": { "type": "string", "description": "A test string field for the new-posts trigger" }
+          },
+          "required": ["include_extra_data"],
+          "additionalProperties": false
+        });
       }
+    } catch (e) {
+      // Ignore parsing errors and fall back to base schema
     }
 
     // Return base schema
@@ -319,11 +317,9 @@ export const triggers = {
   },
 
   outputSchema(context) {
-    // Check if account has custom field enabled
-    if (context && context.account) {
-      try {
-        const accountData = JSON.parse(context.account.serializedData);
-        if (accountData.custom === true && context.triggerId === "new-posts") {
+    try {
+      const accountData = JSON.parse(context.account.serializedData);
+      if (accountData.custom === true && context.triggerId === "new-posts") {
           // Return enhanced schema with custom metadata for new-posts trigger
           return JSON.stringify({
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -355,9 +351,8 @@ export const triggers = {
             "additionalProperties": false
           });
         }
-      } catch (e) {
-        // Ignore parsing errors and fall back to base schema
-      }
+    } catch (e) {
+      // Ignore parsing errors and fall back to base schema
     }
 
     // Return base schema
@@ -375,11 +370,9 @@ export const actions = {
   },
 
   inputSchema(context) {
-    // Check if account has custom field enabled
-    if (context && context.account) {
-      try {
-        const accountData = JSON.parse(context.account.serializedData);
-        if (accountData.custom === true && context.actionId === "http-post") {
+    try {
+      const accountData = JSON.parse(context.account.serializedData);
+      if (accountData.custom === true && context.actionId === "http-post") {
           // Return enhanced schema with custom headers for http-post action
           return JSON.stringify({
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -415,9 +408,64 @@ export const actions = {
             "additionalProperties": false
           });
         }
-      } catch (e) {
-        // Ignore parsing errors and fall back to base schema
-      }
+
+        if (accountData.custom === true && context.actionId === "complex-input") {
+          // Return enhanced schema with custom field for complex-input action
+          return JSON.stringify({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "customer": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["active", "inactive", "pending"]
+                  },
+                  "orders": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "sku": { "type": "string" },
+                              "quantity": { "type": "integer" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "metadata": {
+                "type": "object",
+                "title": "Custom Metadata",
+                "description": "Additional metadata as key-value pairs",
+                "propertyNames": {
+                  "type": "string",
+                  "title": "Field Name"
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "title": "Field Value"
+                }
+              },
+              "custom_string": {
+                "type": "string",
+                "description": "A custom string field for complex-input action"
+              }
+            },
+            "required": ["customer"],
+            "additionalProperties": false
+          });
+        }
+    } catch (e) {
+      // Ignore parsing errors and fall back to base schema
     }
 
     // Return base schema
@@ -425,11 +473,9 @@ export const actions = {
   },
 
   outputSchema(context) {
-    // Check if account has custom field enabled
-    if (context && context.account) {
-      try {
-        const accountData = JSON.parse(context.account.serializedData);
-        if (accountData.custom === true && context.actionId === "http-post") {
+    try {
+      const accountData = JSON.parse(context.account.serializedData);
+      if (accountData.custom === true && context.actionId === "http-post") {
           // Return enhanced schema with custom metadata for http-post action
           return JSON.stringify({
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -479,8 +525,7 @@ export const actions = {
           });
         }
       } catch (e) {
-        // Ignore parsing errors and fall back to base schema
-      }
+      // Ignore parsing errors and fall back to base schema
     }
 
     // Return base schema
