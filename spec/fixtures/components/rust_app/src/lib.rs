@@ -344,24 +344,22 @@ impl TriggersGuest for App {
     fn input_schema(context: TriggerContext) -> Result<String, TriggersAppError> {
         register_triggers();
 
-        // Check if account has custom field enabled
-        if let Some(account) = &context.account {
-            if let Ok(account_data) = serde_json::from_str::<serde_json::Value>(&account.serialized_data) {
-                if let Some(custom) = account_data.get("custom") {
-                    if custom.as_bool() == Some(true) {
-                        // Return enhanced schema with custom field for new-posts trigger
-                        if context.trigger_id == "new-posts" {
-                                                    return Ok(r#"{
+        if let Ok(account_data) = serde_json::from_str::<serde_json::Value>(&context.account.serialized_data) {
+            if let Some(custom) = account_data.get("custom") {
+                if custom.as_bool() == Some(true) {
+                    // Return enhanced schema with custom field for new-posts trigger
+                    if context.trigger_id == "new-posts" {
+                        return Ok(r#"{
                             "$schema": "https://json-schema.org/draft/2020-12/schema",
                             "type": "object",
                             "properties": {
                                 "include_extra_data": { "type": "boolean", "description": "Whether to include additional data in the response" },
-                                "include_custom_data": { "type": "boolean", "description": "Whether to include custom data for premium accounts" }
+                                "include_custom_data": { "type": "boolean", "description": "Whether to include custom data for premium accounts" },
+                                "test_string": { "type": "string", "description": "A test string field for the new-posts trigger" }
                             },
                             "required": ["include_extra_data"],
                             "additionalProperties": false
                         }"#.to_string());
-                        }
                     }
                 }
             }
@@ -374,43 +372,40 @@ impl TriggersGuest for App {
     fn output_schema(context: TriggerContext) -> Result<String, TriggersAppError> {
         register_triggers();
 
-        // Check if account has custom field enabled
-        if let Some(account) = &context.account {
-            if let Ok(account_data) = serde_json::from_str::<serde_json::Value>(&account.serialized_data) {
-                if let Some(custom) = account_data.get("custom") {
-                    if custom.as_bool() == Some(true) {
-                        // Return enhanced schema with custom metadata for new-posts trigger
-                        if context.trigger_id == "new-posts" {
-                            return Ok(r#"{
-                                "$schema": "https://json-schema.org/draft/2020-12/schema",
-                                "type": "object",
-                                "properties": {
-                                    "events": { "type": "array" },
-                                    "store": { "type": "string" },
-                                    "custom_metadata": {
-                                        "type": "object",
-                                        "description": "Additional metadata for premium accounts",
-                                        "properties": {
-                                            "priority": {
-                                                "type": "string",
-                                                "enum": ["low", "medium", "high"],
-                                                "description": "Priority level for the trigger"
-                                            },
-                                            "tags": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "string"
-                                                },
-                                                "description": "Tags associated with the trigger"
-                                            }
+        if let Ok(account_data) = serde_json::from_str::<serde_json::Value>(&context.account.serialized_data) {
+            if let Some(custom) = account_data.get("custom") {
+                if custom.as_bool() == Some(true) {
+                    // Return enhanced schema with custom metadata for new-posts trigger
+                    if context.trigger_id == "new-posts" {
+                        return Ok(r#"{
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "type": "object",
+                            "properties": {
+                                "events": { "type": "array" },
+                                "store": { "type": "string" },
+                                "custom_metadata": {
+                                    "type": "object",
+                                    "description": "Additional metadata for premium accounts",
+                                    "properties": {
+                                        "priority": {
+                                            "type": "string",
+                                            "enum": ["low", "medium", "high"],
+                                            "description": "Priority level for the trigger"
                                         },
-                                        "additionalProperties": false
-                                    }
-                                },
-                                "required": ["events", "store"],
-                                "additionalProperties": false
-                            }"#.to_string());
-                        }
+                                        "tags": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "description": "Tags associated with the trigger"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "required": ["events", "store"],
+                            "additionalProperties": false
+                        }"#.to_string());
                     }
                 }
             }
@@ -436,14 +431,12 @@ impl ActionsGuest for App {
     fn input_schema(context: ActionContext) -> Result<String, ActionsAppError> {
         register_actions();
 
-        // Check if account has custom field enabled
-        if let Some(account) = &context.account {
-            if let Ok(account_data) = serde_json::from_str::<serde_json::Value>(&account.serialized_data) {
-                if let Some(custom) = account_data.get("custom") {
-                    if custom.as_bool() == Some(true) {
-                        // Return enhanced schema with custom headers for http-post action
-                        if context.action_id == "http-post" {
-                            return Ok(r#"{
+        if let Ok(account_data) = serde_json::from_str::<serde_json::Value>(&context.account.serialized_data) {
+            if let Some(custom) = account_data.get("custom") {
+                if custom.as_bool() == Some(true) {
+                    // Return enhanced schema with custom headers for http-post action
+                    if context.action_id == "http-post" {
+                        return Ok(r#"{
                                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                                 "type": "object",
                                 "properties": {
@@ -477,6 +470,62 @@ impl ActionsGuest for App {
                                 "additionalProperties": false
                             }"#.to_string());
                         }
+
+                    // Return enhanced schema with custom field for complex-input action
+                    if context.action_id == "complex-input" {
+                        return Ok(r#"{
+                                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                                "type": "object",
+                                "properties": {
+                                    "customer": {
+                                        "type": "object",
+                                        "title": "Customer name",
+                                        "properties": {
+                                            "status": {
+                                                "type": "string",
+                                                "enum": ["active", "inactive", "pending"]
+                                            },
+                                            "orders": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "items": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "sku": { "type": "string" },
+                                                                    "quantity": { "type": "integer" }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "metadata": {
+                                        "type": "object",
+                                        "title": "Custom Metadata",
+                                        "description": "Additional metadata as key-value pairs",
+                                        "propertyNames": {
+                                            "type": "string",
+                                            "title": "Field Name"
+                                        },
+                                        "additionalProperties": {
+                                            "type": "string",
+                                            "title": "Field Value"
+                                        }
+                                    },
+                                    "custom_string": {
+                                        "type": "string",
+                                        "description": "A custom string field for complex-input action"
+                                    }
+                                },
+                                "required": ["customer"],
+                                "additionalProperties": false
+                            }"#.to_string());
                     }
                 }
             }
@@ -489,60 +538,57 @@ impl ActionsGuest for App {
     fn output_schema(context: ActionContext) -> Result<String, ActionsAppError> {
         register_actions();
 
-        // Check if account has custom field enabled
-        if let Some(account) = &context.account {
-            if let Ok(account_data) = serde_json::from_str::<serde_json::Value>(&account.serialized_data) {
-                if let Some(custom) = account_data.get("custom") {
-                    if custom.as_bool() == Some(true) {
-                        // Return enhanced schema with custom metadata for http-post action
-                        if context.action_id == "http-post" {
-                            return Ok(r#"{
-                                "$schema": "https://json-schema.org/draft/2020-12/schema",
-                                "type": "object",
-                                "properties": {
-                                    "url": {
-                                        "type": "string",
-                                        "description": "The URL that was requested"
-                                    },
-                                    "body": {
-                                        "type": "object",
-                                        "description": "The body that was sent with the request"
-                                    },
-                                    "response": {
-                                        "type": "object",
-                                        "description": "The parsed JSON response from the HTTP request"
-                                    },
-                                    "custom_metadata": {
-                                        "type": "object",
-                                        "description": "Additional metadata for premium accounts",
-                                        "properties": {
-                                            "execution_time": {
-                                                "type": "number",
-                                                "description": "Time taken to execute the action in milliseconds"
-                                            },
-                                            "rate_limit_info": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "remaining": {
-                                                        "type": "integer",
-                                                        "description": "Remaining API calls"
-                                                    },
-                                                    "reset_time": {
-                                                        "type": "string",
-                                                        "format": "date-time",
-                                                        "description": "When the rate limit resets"
-                                                    }
-                                                },
-                                                "additionalProperties": false
-                                            }
-                                        },
-                                        "additionalProperties": false
-                                    }
+        if let Ok(account_data) = serde_json::from_str::<serde_json::Value>(&context.account.serialized_data) {
+            if let Some(custom) = account_data.get("custom") {
+                if custom.as_bool() == Some(true) {
+                    // Return enhanced schema with custom metadata for http-post action
+                    if context.action_id == "http-post" {
+                        return Ok(r#"{
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "The URL that was requested"
                                 },
-                                "required": ["url", "body", "response"],
-                                "additionalProperties": false
-                            }"#.to_string());
-                        }
+                                "body": {
+                                    "type": "object",
+                                    "description": "The body that was sent with the request"
+                                },
+                                "response": {
+                                    "type": "object",
+                                    "description": "The parsed JSON response from the HTTP request"
+                                },
+                                "custom_metadata": {
+                                    "type": "object",
+                                    "description": "Additional metadata for premium accounts",
+                                    "properties": {
+                                        "execution_time": {
+                                            "type": "number",
+                                            "description": "Time taken to execute the action in milliseconds"
+                                        },
+                                        "rate_limit_info": {
+                                            "type": "object",
+                                            "properties": {
+                                                "remaining": {
+                                                    "type": "integer",
+                                                    "description": "Remaining API calls"
+                                                },
+                                                "reset_time": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "description": "When the rate limit resets"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "required": ["url", "body", "response"],
+                            "additionalProperties": false
+                        }"#.to_string());
                     }
                 }
             }

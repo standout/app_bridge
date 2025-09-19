@@ -459,22 +459,26 @@ RSpec.describe AppBridge::App do
       end
 
       it "works with trigger contexts" do
-        context = AppBridge::TriggerContext.new("new-todos", nil, "{}", "{}")
+        base_account = AppBridge::Account.new("1", "Base Account", JSON.generate({}))
+        context = AppBridge::TriggerContext.new("new-todos", base_account, "{}", "{}")
         expect { app_with_env.trigger_input_schema(context) }.not_to raise_error
       end
 
       it "works with action contexts" do
-        context = AppBridge::ActionContext.new("http-get", nil, "{}")
+        base_account = AppBridge::Account.new("1", "Base Account", JSON.generate({}))
+        context = AppBridge::ActionContext.new("http-get", base_account, "{}")
         expect { app_with_env.action_input_schema(context) }.not_to raise_error
       end
 
       it "can execute actions with environment variables" do
-        context = AppBridge::ActionContext.new("http-get", nil, '{"url": "https://httpbin.org/get"}')
+        base_account = AppBridge::Account.new("1", "Base Account", JSON.generate({}))
+        context = AppBridge::ActionContext.new("http-get", base_account, '{"url": "https://httpbin.org/get"}')
         expect { app_with_env.execute_action(context) }.not_to raise_error
       end
 
       it "returns environment variables in complex-input action output" do
-        context = AppBridge::ActionContext.new("complex-input", nil,
+        base_account = AppBridge::Account.new("1", "Base Account", JSON.generate({}))
+        context = AppBridge::ActionContext.new("complex-input", base_account,
                                                '{"customer": {"status": "active", "orders": []}}')
         response = app_with_env.execute_action(context)
 
@@ -492,7 +496,8 @@ RSpec.describe AppBridge::App do
       it "handles missing environment variables gracefully" do
         # Test with empty environment variables
         app_empty = AppBridge::App.new(component_path, environment_variables: test_env_vars)
-        context = AppBridge::ActionContext.new("complex-input", nil,
+        base_account = AppBridge::Account.new("1", "Base Account", JSON.generate({}))
+        context = AppBridge::ActionContext.new("complex-input", base_account,
                                                '{"customer": {"status": "active", "orders": []}}')
         response = app_empty.execute_action(context)
 

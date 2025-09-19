@@ -9,26 +9,26 @@ pub struct RTriggerContext {
 }
 
 impl RTriggerContext {
-    pub fn new(trigger_id: String, account: Value, store: String, serialized_input: String) -> Self {
-        let wrapped_account = if account.is_nil() {
-            None
-        } else {
-            match TryConvert::try_convert(account) {
-                Ok(acc) => Some(acc),
-                Err(_) => None,
-            }
+    pub fn new(trigger_id: String, account: Value, store: String, serialized_input: String) -> Result<Self, Error> {
+        if account.is_nil() {
+            return Err(Error::new(magnus::exception::runtime_error(), "Account is required"));
+        }
+
+        let wrapped_account: RAccount = match TryConvert::try_convert(account) {
+            Ok(acc) => acc,
+            Err(_) => return Err(Error::new(magnus::exception::runtime_error(), "Account is required")),
         };
 
         let inner = TriggerContext {
             trigger_id: trigger_id,
-            account: wrapped_account.as_ref().map(|acc: &RAccount| acc.clone().into()),
+            account: wrapped_account.clone().into(),
             store: store,
             serialized_input: serialized_input,
         };
-        Self {
+        Ok(Self {
             inner,
-            wrapped_account,
-        }
+            wrapped_account: Some(wrapped_account),
+        })
     }
 
     pub fn trigger_id(&self) -> String {
@@ -55,25 +55,25 @@ impl TryConvert for RTriggerContext {
         let trigger_id: String = val.funcall("trigger_id", ())?;
         let serialized_input: String = val.funcall("serialized_input", ())?;
 
-        let wrapped_account = if account_val.is_nil() {
-            None
-        } else {
-            match TryConvert::try_convert(account_val) {
-                Ok(acc) => Some(acc),
-                Err(_) => None,
-            }
+        if account_val.is_nil() {
+            return Err(Error::new(magnus::exception::runtime_error(), "Account is required"));
+        }
+
+        let wrapped_account: RAccount = match TryConvert::try_convert(account_val) {
+            Ok(acc) => acc,
+            Err(_) => return Err(Error::new(magnus::exception::runtime_error(), "Account is required")),
         };
 
         let inner = TriggerContext {
             trigger_id: trigger_id,
-            account: wrapped_account.as_ref().map(|acc: &RAccount| acc.clone().inner),
+            account: wrapped_account.clone().inner,
             store: store,
             serialized_input: serialized_input,
         };
 
         Ok(Self {
             inner,
-            wrapped_account,
+            wrapped_account: Some(wrapped_account),
         })
     }
 }

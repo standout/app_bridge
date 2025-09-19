@@ -24,8 +24,8 @@ interface types {
     trigger-id: string,
 
     // The account that the trigger is invoked for.
-    // This can be null if no account is associated with the trigger.
-    account: option<account>,
+    // Account is required for all trigger operations.
+    account: account,
 
     // The store will contain the data that was stored in the trigger store the
     // last time the trigger was invoked.
@@ -42,8 +42,8 @@ interface types {
     action-id: string,
 
     // The account that the action is invoked for.
-    // This can be null if no account is associated with the action.
-    account: option<account>,
+    // Account is required for all action operations.
+    account: account,
 
     // The input data for the action, serialized as a JSON object string.
     // This contains the data passed from the previous step in the workflow.
