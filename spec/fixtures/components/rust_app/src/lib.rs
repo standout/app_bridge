@@ -265,7 +265,7 @@ fn register_actions() {
                     "status": {
                         "type": "string",
                         "enum": ["active", "inactive", "pending"],
-                        "description": "Current status of the customer account"
+                        "description": "Current status of the customer connection"
                     },
                     "orders": {
                         "type": "array",
@@ -344,8 +344,8 @@ impl TriggersGuest for App {
     fn input_schema(context: TriggerContext) -> Result<String, TriggersAppError> {
         register_triggers();
 
-        if let Ok(account_data) = serde_json::from_str::<serde_json::Value>(&context.account.serialized_data) {
-            if let Some(custom) = account_data.get("custom") {
+        if let Ok(connection_data) = serde_json::from_str::<serde_json::Value>(&context.connection.serialized_data) {
+            if let Some(custom) = connection_data.get("custom") {
                 if custom.as_bool() == Some(true) {
                     // Return enhanced schema with custom field for new-posts trigger
                     if context.trigger_id == "new-posts" {
@@ -354,7 +354,7 @@ impl TriggersGuest for App {
                             "type": "object",
                             "properties": {
                                 "include_extra_data": { "type": "boolean", "description": "Whether to include additional data in the response" },
-                                "include_custom_data": { "type": "boolean", "description": "Whether to include custom data for premium accounts" },
+                                "include_custom_data": { "type": "boolean", "description": "Whether to include custom data for premium connections" },
                                 "test_string": { "type": "string", "description": "A test string field for the new-posts trigger" }
                             },
                             "required": ["include_extra_data"],
@@ -372,8 +372,8 @@ impl TriggersGuest for App {
     fn output_schema(context: TriggerContext) -> Result<String, TriggersAppError> {
         register_triggers();
 
-        if let Ok(account_data) = serde_json::from_str::<serde_json::Value>(&context.account.serialized_data) {
-            if let Some(custom) = account_data.get("custom") {
+        if let Ok(connection_data) = serde_json::from_str::<serde_json::Value>(&context.connection.serialized_data) {
+            if let Some(custom) = connection_data.get("custom") {
                 if custom.as_bool() == Some(true) {
                     // Return enhanced schema with custom metadata for new-posts trigger
                     if context.trigger_id == "new-posts" {
@@ -385,7 +385,7 @@ impl TriggersGuest for App {
                                 "store": { "type": "string" },
                                 "custom_metadata": {
                                     "type": "object",
-                                    "description": "Additional metadata for premium accounts",
+                                    "description": "Additional metadata for premium connections",
                                     "properties": {
                                         "priority": {
                                             "type": "string",
@@ -431,8 +431,8 @@ impl ActionsGuest for App {
     fn input_schema(context: ActionContext) -> Result<String, ActionsAppError> {
         register_actions();
 
-        if let Ok(account_data) = serde_json::from_str::<serde_json::Value>(&context.account.serialized_data) {
-            if let Some(custom) = account_data.get("custom") {
+        if let Ok(connection_data) = serde_json::from_str::<serde_json::Value>(&context.connection.serialized_data) {
+            if let Some(custom) = connection_data.get("custom") {
                 if custom.as_bool() == Some(true) {
                     // Return enhanced schema with custom headers for http-post action
                     if context.action_id == "http-post" {
@@ -452,7 +452,7 @@ impl ActionsGuest for App {
                                     },
                                     "custom_headers": {
                                         "type": "object",
-                                        "description": "Custom headers for premium accounts",
+                                        "description": "Custom headers for premium connections",
                                         "properties": {
                                             "authorization": {
                                                 "type": "string",
@@ -538,8 +538,8 @@ impl ActionsGuest for App {
     fn output_schema(context: ActionContext) -> Result<String, ActionsAppError> {
         register_actions();
 
-        if let Ok(account_data) = serde_json::from_str::<serde_json::Value>(&context.account.serialized_data) {
-            if let Some(custom) = account_data.get("custom") {
+        if let Ok(connection_data) = serde_json::from_str::<serde_json::Value>(&context.connection.serialized_data) {
+            if let Some(custom) = connection_data.get("custom") {
                 if custom.as_bool() == Some(true) {
                     // Return enhanced schema with custom metadata for http-post action
                     if context.action_id == "http-post" {
@@ -561,7 +561,7 @@ impl ActionsGuest for App {
                                 },
                                 "custom_metadata": {
                                     "type": "object",
-                                    "description": "Additional metadata for premium accounts",
+                                    "description": "Additional metadata for premium connections",
                                     "properties": {
                                         "execution_time": {
                                             "type": "number",

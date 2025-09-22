@@ -10,10 +10,10 @@ interface types {
   // need to add more data to the store.
   type trigger-store = string;
 
-  record account {
+  record connection {
     id: string,
     name: string,
-    // The account data is a JSON object serialized into a string. The JSON root
+    // The connection data is a JSON object serialized into a string. The JSON root
     // will always be an object.
     serialized-data: string,
   }
@@ -23,9 +23,9 @@ interface types {
     // invoked.
     trigger-id: string,
 
-    // The account that the trigger is invoked for.
-    // Account is required for all trigger operations.
-    account: account,
+    // The connection that the trigger is invoked for.
+    // Connection is required for all trigger operations.
+    connection: connection,
 
     // The store will contain the data that was stored in the trigger store the
     // last time the trigger was invoked.
@@ -41,9 +41,9 @@ interface types {
     // invoked.
     action-id: string,
 
-    // The account that the action is invoked for.
-    // Account is required for all action operations.
-    account: account,
+    // The connection that the action is invoked for.
+    // Connection is required for all action operations.
+    connection: connection,
 
     // The input data for the action, serialized as a JSON object string.
     // This contains the data passed from the previous step in the workflow.
@@ -70,7 +70,7 @@ interface types {
   record trigger-event {
     // The ID of the trigger event
     //
-    // If the account used for the given instance of the trigger is the same,
+    // If the connection used for the given instance of the trigger is the same,
     // as seen before. Then the event will be ignored.
     //
     // A scheduler could therefore use an timestamp as the ID, to ensure that
@@ -107,7 +107,7 @@ interface types {
     /// Authentication failed. Typically due to an invalid or expired API key or token.
     unauthenticated,
 
-    /// Authorization failed. The account is valid but does not have the necessary permissions.
+    /// Authorization failed. The connection is valid but does not have the necessary permissions.
     forbidden,
 
     /// The trigger is misconfigured. For example, a required setting is missing or invalid.
@@ -138,19 +138,19 @@ interface types {
 
 
 interface triggers {
-  use types.{trigger-context, trigger-event, trigger-response, app-error, account};
+  use types.{trigger-context, trigger-event, trigger-response, app-error};
 
   trigger-ids: func() -> result<list<string>, app-error>;
 
   // Get the input schema for a specific trigger
   // Returns a JSON Schema Draft 2020-12 schema as a string
-  // The schema may vary based on the account in the context
+  // The schema may vary based on the connection in the context
   // The trigger-id is extracted from the context
   input-schema: func(context: trigger-context) -> result<string, app-error>;
 
   // Get the output schema for a specific trigger
   // Returns a JSON Schema Draft 2020-12 schema as a string
-  // The schema may vary based on the account in the context
+  // The schema may vary based on the connection in the context
   // The trigger-id is extracted from the context
   output-schema: func(context: trigger-context) -> result<string, app-error>;
 
@@ -179,19 +179,19 @@ interface triggers {
 }
 
 interface actions {
-  use types.{action-context, action-response, app-error, account};
+  use types.{action-context, action-response, app-error};
 
   action-ids: func() -> result<list<string>, app-error>;
 
   // Get the input schema for a specific action
   // Returns a JSON Schema Draft 2020-12 schema as a string
-  // The schema may vary based on the account in the context
+  // The schema may vary based on the connection in the context
   // The action-id is extracted from the context
   input-schema: func(context: action-context) -> result<string, app-error>;
 
   // Get the output schema for a specific action
   // Returns a JSON Schema Draft 2020-12 schema as a string
-  // The schema may vary based on the account in the context
+  // The schema may vary based on the connection in the context
   // The action-id is extracted from the context
   output-schema: func(context: action-context) -> result<string, app-error>;
 

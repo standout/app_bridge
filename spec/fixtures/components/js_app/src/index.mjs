@@ -220,7 +220,7 @@ const complexInputOutputSchema = `{
         "status": {
           "type": "string",
           "enum": ["active", "inactive", "pending"],
-          "description": "Current status of the customer account"
+          "description": "Current status of the customer connection"
         },
         "orders": {
           "type": "array",
@@ -293,15 +293,15 @@ export const triggers = {
 
   inputSchema(context) {
     try {
-      const accountData = JSON.parse(context.account.serializedData);
-      if (accountData.custom === true && context.triggerId === "new-posts") {
+      const connectionData = JSON.parse(context.connection.serializedData);
+      if (connectionData.custom === true && context.triggerId === "new-posts") {
         // Return enhanced schema with custom field for new-posts trigger
         return JSON.stringify({
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {
             "include_extra_data": { "type": "boolean", "description": "Whether to include additional data in the response" },
-            "include_custom_data": { "type": "boolean", "description": "Whether to include custom data for premium accounts" },
+            "include_custom_data": { "type": "boolean", "description": "Whether to include custom data for premium connections" },
             "test_string": { "type": "string", "description": "A test string field for the new-posts trigger" }
           },
           "required": ["include_extra_data"],
@@ -318,8 +318,8 @@ export const triggers = {
 
   outputSchema(context) {
     try {
-      const accountData = JSON.parse(context.account.serializedData);
-      if (accountData.custom === true && context.triggerId === "new-posts") {
+      const connectionData = JSON.parse(context.connection.serializedData);
+      if (connectionData.custom === true && context.triggerId === "new-posts") {
           // Return enhanced schema with custom metadata for new-posts trigger
           return JSON.stringify({
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -329,7 +329,7 @@ export const triggers = {
               "store": { "type": "string" },
               "custom_metadata": {
                 "type": "object",
-                "description": "Additional metadata for premium accounts",
+                "description": "Additional metadata for premium connections",
                 "properties": {
                   "priority": {
                     "type": "string",
@@ -371,8 +371,8 @@ export const actions = {
 
   inputSchema(context) {
     try {
-      const accountData = JSON.parse(context.account.serializedData);
-      if (accountData.custom === true && context.actionId === "http-post") {
+      const connectionData = JSON.parse(context.connection.serializedData);
+      if (connectionData.custom === true && context.actionId === "http-post") {
           // Return enhanced schema with custom headers for http-post action
           return JSON.stringify({
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -390,7 +390,7 @@ export const actions = {
               },
               "custom_headers": {
                 "type": "object",
-                "description": "Custom headers for premium accounts",
+                "description": "Custom headers for premium connections",
                 "properties": {
                   "authorization": {
                     "type": "string",
@@ -409,7 +409,7 @@ export const actions = {
           });
         }
 
-        if (accountData.custom === true && context.actionId === "complex-input") {
+        if (connectionData.custom === true && context.actionId === "complex-input") {
           // Return enhanced schema with custom field for complex-input action
           return JSON.stringify({
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -474,8 +474,8 @@ export const actions = {
 
   outputSchema(context) {
     try {
-      const accountData = JSON.parse(context.account.serializedData);
-      if (accountData.custom === true && context.actionId === "http-post") {
+      const connectionData = JSON.parse(context.connection.serializedData);
+      if (connectionData.custom === true && context.actionId === "http-post") {
           // Return enhanced schema with custom metadata for http-post action
           return JSON.stringify({
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -495,7 +495,7 @@ export const actions = {
               },
               "custom_metadata": {
                 "type": "object",
-                "description": "Additional metadata for premium accounts",
+                "description": "Additional metadata for premium connections",
                 "properties": {
                   "execution_time": {
                     "type": "number",
