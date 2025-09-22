@@ -1,5 +1,5 @@
 import { RequestBuilder } from 'standout:app/http@2.1.0';
-import { getEnvVars } from 'standout:app/environment@2.1.0';
+import { envVars, envVar } from 'standout:app/environment@2.1.0';
 import { AppError } from './app_error.mjs';
 
 export const actionBuilder = (resource) => {
@@ -17,9 +17,9 @@ export const actionBuilder = (resource) => {
 
         try {
           // Use the WASI environment interface to get environment variables
-          const envVars = getEnvVars();
-          if (envVars && Array.isArray(envVars) && envVars.length > 0) {
-            for (const [key, value] of envVars) {
+          const envVarsList = envVars();
+          if (envVarsList && Array.isArray(envVarsList) && envVarsList.length > 0) {
+            for (const [key, value] of envVarsList) {
               environmentVariables[key] = value;
             }
           } else {
@@ -63,17 +63,10 @@ export const actionBuilder = (resource) => {
       // Check if we're in test mode (mock HTTP requests)
       let isTestMode = false;
       try {
-        const envVars = getEnvVars();
-        if (envVars && Array.isArray(envVars)) {
-          for (const [key, value] of envVars) {
-            if (key === 'APP_BRIDGE_TEST_MODE') {
-              isTestMode = true;
-              break;
-            }
-          }
-        }
+        const testModeValue = envVar('APP_BRIDGE_TEST_MODE');
+        isTestMode = testModeValue !== null;
       } catch (error) {
-        // If getEnvVars fails, assume not in test mode
+        // If envVar fails, assume not in test mode
         isTestMode = false;
       }
 
