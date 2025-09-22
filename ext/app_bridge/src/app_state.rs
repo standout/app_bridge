@@ -33,8 +33,12 @@ impl standout::app::http::Host for AppState {
 }
 
 impl standout::app::environment::Host for AppState {
-    fn get_env_vars(&mut self) -> Vec<(String, String)> {
+    fn env_vars(&mut self) -> Vec<(String, String)> {
         self.environment_variables.clone().into_iter().collect()
+    }
+
+    fn env_var(&mut self, name: String) -> Option<String> {
+        self.environment_variables.get(&name).cloned()
     }
 }
 

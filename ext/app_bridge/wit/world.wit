@@ -214,7 +214,9 @@ interface actions {
 
 interface environment {
   // Get all environment variables
-  get-env-vars: func() -> list<tuple<string, string>>;
+  env-vars: func() -> list<tuple<string, string>>;
+  // Get a specific environment variable by name
+  env-var: func(name: string) -> option<string>;
 }
 
 interface http {
