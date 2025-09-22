@@ -1,14 +1,14 @@
 use magnus::{prelude::*, Error, TryConvert, Value};
-use crate::component::standout::app::types::Account;
+use crate::component::standout::app::types::Connection;
 
-#[magnus::wrap(class = "AppBridge::Account")]
-pub struct RAccount {
-    pub inner: Account,
+#[magnus::wrap(class = "AppBridge::Connection")]
+pub struct RConnection {
+    pub inner: Connection,
 }
 
-impl RAccount {
+impl RConnection {
     pub fn new(id: String, name: String, serialized_data: String) -> Self {
-        let inner = Account {
+        let inner = Connection {
             id: id,
             name: name,
             serialized_data: serialized_data,
@@ -29,7 +29,7 @@ impl RAccount {
     }
 }
 
-impl Clone for RAccount {
+impl Clone for RConnection {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
@@ -37,13 +37,13 @@ impl Clone for RAccount {
     }
 }
 
-impl TryConvert for RAccount {
+impl TryConvert for RConnection {
     fn try_convert(val: Value) -> Result<Self, Error> {
         let id: String = val.funcall("id", ())?;
         let name: String = val.funcall("name", ())?;
         let serialized_data: String = val.funcall("serialized_data", ())?;
 
-        let inner = Account {
+        let inner = Connection {
             id,
             name,
             serialized_data,
@@ -53,8 +53,8 @@ impl TryConvert for RAccount {
     }
 }
 
-impl From<RAccount> for Account {
-    fn from(raccount: RAccount) -> Self {
-        raccount.inner
+impl From<RConnection> for Connection {
+    fn from(rconnection: RConnection) -> Self {
+        rconnection.inner
     }
 }

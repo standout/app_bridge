@@ -5,7 +5,7 @@ mod request_builder;
 mod error_mapping;
 
 mod wrappers;
-use wrappers::account::RAccount;
+use wrappers::connection::RConnection;
 use wrappers::trigger_context::RTriggerContext;
 use wrappers::trigger_event::RTriggerEvent;
 use wrappers::trigger_response::RTriggerResponse;
@@ -29,12 +29,12 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     module.define_error("MalformedResponseError", error)?;
     module.define_error("OtherError", error)?;
 
-    // Define the Accout class
-    let account_class = module.define_class("Account", ruby.class_object())?;
-    account_class.define_singleton_method("new", function!(RAccount::new, 3))?;
-    account_class.define_method("id", method!(RAccount::id, 0))?;
-    account_class.define_method("name", method!(RAccount::name, 0))?;
-    account_class.define_method("serialized_data", method!(RAccount::serialized_data, 0))?;
+    // Define the Connection class
+    let connection_class = module.define_class("Connection", ruby.class_object())?;
+    connection_class.define_singleton_method("new", function!(RConnection::new, 3))?;
+    connection_class.define_method("id", method!(RConnection::id, 0))?;
+    connection_class.define_method("name", method!(RConnection::name, 0))?;
+    connection_class.define_method("serialized_data", method!(RConnection::serialized_data, 0))?;
 
     let trigger_event_class = module.define_class("TriggerEvent", ruby.class_object())?;
     trigger_event_class.define_singleton_method("new", function!(RTriggerEvent::new, 2))?;
@@ -52,7 +52,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     let trigger_context_class = module.define_class("TriggerContext", ruby.class_object())?;
     trigger_context_class.define_singleton_method("new", function!(RTriggerContext::new, 4))?;
     trigger_context_class.define_method("trigger_id", method!(RTriggerContext::trigger_id, 0))?;
-    trigger_context_class.define_method("account", method!(RTriggerContext::account, 0))?;
+    trigger_context_class.define_method("connection", method!(RTriggerContext::connection, 0))?;
     trigger_context_class.define_method("store", method!(RTriggerContext::store, 0))?;
     trigger_context_class.define_method("serialized_input", method!(RTriggerContext::serialized_input, 0))?;
 
@@ -60,7 +60,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     let action_context_class = module.define_class("ActionContext", ruby.class_object())?;
     action_context_class.define_singleton_method("new", function!(RActionContext::new, 3))?;
     action_context_class.define_method("action_id", method!(RActionContext::action_id, 0))?;
-    action_context_class.define_method("account", method!(RActionContext::account, 0))?;
+    action_context_class.define_method("connection", method!(RActionContext::connection, 0))?;
     action_context_class.define_method("serialized_input", method!(RActionContext::serialized_input, 0))?;
 
     let action_response_class = module.define_class("ActionResponse", ruby.class_object())?;

@@ -30,8 +30,9 @@ RSpec.describe AppBridge::App do
 
     describe "#fetch_events(context)" do
       let(:context) do
-        account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
-        AppBridge::TriggerContext.new("new-todos", account, "world", "{}")
+        connection = AppBridge::Connection.new("1", "John Doe",
+                                               JSON.generate({ username: "john.doe", password: "foobar" }))
+        AppBridge::TriggerContext.new("new-todos", connection, "world", "{}")
       end
 
       it "returns a response with new store" do
@@ -146,11 +147,11 @@ RSpec.describe AppBridge::App do
     end
 
     describe "#trigger_input_schema" do
-      let(:base_account) { AppBridge::Account.new("1", "Base Account", JSON.generate({})) }
-      let(:custom_account) { AppBridge::Account.new("2", "Custom Account", JSON.generate({ custom: true })) }
+      let(:base_connection) { AppBridge::Connection.new("1", "Base Connection", JSON.generate({})) }
+      let(:custom_connection) { AppBridge::Connection.new("2", "Custom Connection", JSON.generate({ custom: true })) }
 
-      it "returns the input schema for new-todos trigger with base account" do
-        context = AppBridge::TriggerContext.new("new-todos", base_account, "", "{}")
+      it "returns the input schema for new-todos trigger with base connection" do
+        context = AppBridge::TriggerContext.new("new-todos", base_connection, "", "{}")
         schema = app.trigger_input_schema(context)
         expect(schema).to be_a(String)
 
@@ -165,8 +166,8 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["properties"]).not_to have_key("include_custom_data")
       end
 
-      it "returns the input schema for new-posts trigger with custom account" do
-        context = AppBridge::TriggerContext.new("new-posts", custom_account, "", "{}")
+      it "returns the input schema for new-posts trigger with custom connection" do
+        context = AppBridge::TriggerContext.new("new-posts", custom_connection, "", "{}")
         schema = app.trigger_input_schema(context)
         expect(schema).to be_a(String)
 
@@ -174,24 +175,24 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
         expect(parsed_schema["type"]).to eq("object")
         expect(parsed_schema["properties"]["include_extra_data"]["type"]).to eq("boolean")
-        # Custom account should have additional custom field
+        # Custom connection should have additional custom field
         expect(parsed_schema["properties"]["include_custom_data"]["type"]).to eq("boolean")
         expect(parsed_schema["properties"]["include_custom_data"]["description"])
-          .to eq("Whether to include custom data for premium accounts")
+          .to eq("Whether to include custom data for premium connections")
       end
 
       it "raises an error for invalid trigger ID" do
-        context = AppBridge::TriggerContext.new("invalid-trigger", base_account, "", "{}")
+        context = AppBridge::TriggerContext.new("invalid-trigger", base_connection, "", "{}")
         expect { app.trigger_input_schema(context) }.to raise_error(AppBridge::Error)
       end
     end
 
     describe "#trigger_output_schema" do
-      let(:base_account) { AppBridge::Account.new("1", "Base Account", JSON.generate({})) }
-      let(:custom_account) { AppBridge::Account.new("2", "Custom Account", JSON.generate({ custom: true })) }
+      let(:base_connection) { AppBridge::Connection.new("1", "Base Connection", JSON.generate({})) }
+      let(:custom_connection) { AppBridge::Connection.new("2", "Custom Connection", JSON.generate({ custom: true })) }
 
-      it "returns the output schema for new-todos trigger with base account" do
-        context = AppBridge::TriggerContext.new("new-todos", base_account, "", "{}")
+      it "returns the output schema for new-todos trigger with base connection" do
+        context = AppBridge::TriggerContext.new("new-todos", base_connection, "", "{}")
         schema = app.trigger_output_schema(context)
         expect(schema).to be_a(String)
 
@@ -204,8 +205,8 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["properties"]).not_to have_key("custom_metadata")
       end
 
-      it "returns the output schema for new-posts trigger with custom account" do
-        context = AppBridge::TriggerContext.new("new-posts", custom_account, "", "{}")
+      it "returns the output schema for new-posts trigger with custom connection" do
+        context = AppBridge::TriggerContext.new("new-posts", custom_connection, "", "{}")
         schema = app.trigger_output_schema(context)
         expect(schema).to be_a(String)
 
@@ -213,25 +214,25 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["$schema"]).to eq("https://json-schema.org/draft/2020-12/schema")
         expect(parsed_schema["type"]).to eq("object")
         expect(parsed_schema["properties"]["events"]["type"]).to eq("array")
-        # Custom account should have additional custom metadata field
+        # Custom connection should have additional custom metadata field
         expect(parsed_schema["properties"]["custom_metadata"]["type"]).to eq("object")
         expect(parsed_schema["properties"]["custom_metadata"]["description"]).to eq(
-          "Additional metadata for premium accounts"
+          "Additional metadata for premium connections"
         )
       end
 
       it "raises an error for invalid trigger ID" do
-        context = AppBridge::TriggerContext.new("invalid-trigger", base_account, "", "{}")
+        context = AppBridge::TriggerContext.new("invalid-trigger", base_connection, "", "{}")
         expect { app.trigger_output_schema(context) }.to raise_error(AppBridge::Error)
       end
     end
 
     describe "#action_input_schema" do
-      let(:base_account) { AppBridge::Account.new("1", "Base Account", JSON.generate({})) }
-      let(:custom_account) { AppBridge::Account.new("2", "Custom Account", JSON.generate({ custom: true })) }
+      let(:base_connection) { AppBridge::Connection.new("1", "Base Connection", JSON.generate({})) }
+      let(:custom_connection) { AppBridge::Connection.new("2", "Custom Connection", JSON.generate({ custom: true })) }
 
-      it "returns the input schema for http-get action with base account" do
-        context = AppBridge::ActionContext.new("http-get", base_account, "{}")
+      it "returns the input schema for http-get action with base connection" do
+        context = AppBridge::ActionContext.new("http-get", base_connection, "{}")
         schema = app.action_input_schema(context)
         expect(schema).to be_a(String)
 
@@ -245,8 +246,8 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["properties"]).not_to have_key("custom_headers")
       end
 
-      it "returns the input schema for http-post action with custom account" do
-        context = AppBridge::ActionContext.new("http-post", custom_account, "{}")
+      it "returns the input schema for http-post action with custom connection" do
+        context = AppBridge::ActionContext.new("http-post", custom_connection, "{}")
         schema = app.action_input_schema(context)
         expect(schema).to be_a(String)
 
@@ -258,20 +259,20 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["properties"]["body"]["type"]).to eq("string")
         expect(parsed_schema["properties"]["body"]["format"]).to eq("code")
         expect(parsed_schema["required"]).to include("url")
-        # Custom account should have additional custom headers field
+        # Custom connection should have additional custom headers field
         expect(parsed_schema["properties"]["custom_headers"]["type"]).to eq("object")
         expect(parsed_schema["properties"]["custom_headers"]["description"]).to eq(
-          "Custom headers for premium accounts"
+          "Custom headers for premium connections"
         )
       end
 
       it "raises an error for invalid action ID" do
-        context = AppBridge::ActionContext.new("invalid-action", base_account, "{}")
+        context = AppBridge::ActionContext.new("invalid-action", base_connection, "{}")
         expect { app.action_input_schema(context) }.to raise_error(AppBridge::Error)
       end
 
-      it "returns the input schema for complex-input action with base account" do
-        context = AppBridge::ActionContext.new("complex-input", base_account, "{}")
+      it "returns the input schema for complex-input action with base connection" do
+        context = AppBridge::ActionContext.new("complex-input", base_connection, "{}")
         schema = app.action_input_schema(context)
         expect(schema).to be_a(String)
 
@@ -294,11 +295,11 @@ RSpec.describe AppBridge::App do
     end
 
     describe "#action_output_schema" do
-      let(:base_account) { AppBridge::Account.new("1", "Base Account", JSON.generate({})) }
-      let(:custom_account) { AppBridge::Account.new("2", "Custom Account", JSON.generate({ custom: true })) }
+      let(:base_connection) { AppBridge::Connection.new("1", "Base Connection", JSON.generate({})) }
+      let(:custom_connection) { AppBridge::Connection.new("2", "Custom Connection", JSON.generate({ custom: true })) }
 
-      it "returns the output schema for http-get action with base account" do
-        context = AppBridge::ActionContext.new("http-get", base_account, "{}")
+      it "returns the output schema for http-get action with base connection" do
+        context = AppBridge::ActionContext.new("http-get", base_connection, "{}")
         schema = app.action_output_schema(context)
         expect(schema).to be_a(String)
 
@@ -312,8 +313,8 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["properties"]).not_to have_key("custom_metadata")
       end
 
-      it "returns the output schema for http-post action with custom account" do
-        context = AppBridge::ActionContext.new("http-post", custom_account, "{}")
+      it "returns the output schema for http-post action with custom connection" do
+        context = AppBridge::ActionContext.new("http-post", custom_connection, "{}")
         schema = app.action_output_schema(context)
         expect(schema).to be_a(String)
 
@@ -324,20 +325,20 @@ RSpec.describe AppBridge::App do
         expect(parsed_schema["properties"]["body"]["type"]).to eq("object")
         expect(parsed_schema["properties"]["response"]["type"]).to eq("object")
         expect(parsed_schema["required"]).to include("url", "body", "response")
-        # Custom account should have additional custom metadata field
+        # Custom connection should have additional custom metadata field
         expect(parsed_schema["properties"]["custom_metadata"]["type"]).to eq("object")
         expect(parsed_schema["properties"]["custom_metadata"]["description"]).to eq(
-          "Additional metadata for premium accounts"
+          "Additional metadata for premium connections"
         )
       end
 
       it "raises an error for invalid action ID" do
-        context = AppBridge::ActionContext.new("invalid-action", base_account, "{}")
+        context = AppBridge::ActionContext.new("invalid-action", base_connection, "{}")
         expect { app.action_output_schema(context) }.to raise_error(AppBridge::Error)
       end
 
-      it "returns the output schema for complex-input action with base account" do
-        context = AppBridge::ActionContext.new("complex-input", base_account, "{}")
+      it "returns the output schema for complex-input action with base connection" do
+        context = AppBridge::ActionContext.new("complex-input", base_connection, "{}")
         schema = app.action_output_schema(context)
         expect(schema).to be_a(String)
 
@@ -354,8 +355,9 @@ RSpec.describe AppBridge::App do
 
     describe "#execute_action(context)" do
       let(:context) do
-        account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
-        AppBridge::ActionContext.new("http-get", account, JSON.generate({ url: "https://httpbin.org/get" }))
+        connection = AppBridge::Connection.new("1", "John Doe",
+                                               JSON.generate({ username: "john.doe", password: "foobar" }))
+        AppBridge::ActionContext.new("http-get", connection, JSON.generate({ url: "https://httpbin.org/get" }))
       end
 
       it "returns a response with output" do
@@ -367,8 +369,9 @@ RSpec.describe AppBridge::App do
 
       context "with invalid action ID" do
         let(:context) do
-          account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
-          AppBridge::ActionContext.new("invalid-action", account, "{}")
+          connection = AppBridge::Connection.new("1", "John Doe",
+                                                 JSON.generate({ username: "john.doe", password: "foobar" }))
+          AppBridge::ActionContext.new("invalid-action", connection, "{}")
         end
 
         it "raises an error" do
@@ -378,11 +381,12 @@ RSpec.describe AppBridge::App do
 
       context "with http-post action" do
         let(:context) do
-          account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
-          AppBridge::ActionContext.new("http-post", account, JSON.generate({
-                                                                             url: "https://httpbin.org/post",
-                                                                             body: JSON.generate({ test: "data" })
-                                                                           }))
+          connection = AppBridge::Connection.new("1", "John Doe",
+                                                 JSON.generate({ username: "john.doe", password: "foobar" }))
+          AppBridge::ActionContext.new("http-post", connection, JSON.generate({
+                                                                                url: "https://httpbin.org/post",
+                                                                                body: JSON.generate({ test: "data" })
+                                                                              }))
         end
 
         it "returns a response with output" do
@@ -395,20 +399,23 @@ RSpec.describe AppBridge::App do
 
       context "with complex-input action" do
         let(:context) do
-          account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
-          AppBridge::ActionContext.new("complex-input", account, JSON.generate({
-                                                                                 customer: {
-                                                                                   status: "active",
-                                                                                   orders: [
-                                                                                     {
-                                                                                       items: [
-                                                                                         { sku: "ABC123", quantity: 2 },
-                                                                                         { sku: "DEF456", quantity: 1 }
-                                                                                       ]
-                                                                                     }
-                                                                                   ]
-                                                                                 }
-                                                                               }))
+          connection = AppBridge::Connection.new("1", "John Doe",
+                                                 JSON.generate({ username: "john.doe", password: "foobar" }))
+          AppBridge::ActionContext.new("complex-input", connection, JSON.generate({
+                                                                                    customer: {
+                                                                                      status: "active",
+                                                                                      orders: [
+                                                                                        {
+                                                                                          items: [
+                                                                                            { sku: "ABC123",
+                                                                                              quantity: 2 },
+                                                                                            { sku: "DEF456",
+                                                                                              quantity: 1 }
+                                                                                          ]
+                                                                                        }
+                                                                                      ]
+                                                                                    }
+                                                                                  }))
         end
 
         it "returns a response with processed customer data" do
@@ -424,8 +431,9 @@ RSpec.describe AppBridge::App do
 
       context "when action response is too large" do
         let(:context) do
-          account = AppBridge::Account.new("1", "John Doe", JSON.generate({ username: "john.doe", password: "foobar" }))
-          AppBridge::ActionContext.new("http-get", account, JSON.generate({ url: "https://httpbin.org/get" }))
+          connection = AppBridge::Connection.new("1", "John Doe",
+                                                 JSON.generate({ username: "john.doe", password: "foobar" }))
+          AppBridge::ActionContext.new("http-get", connection, JSON.generate({ url: "https://httpbin.org/get" }))
         end
 
         it "raises ActionResponseTooLargeError when response exceeds 64 kB" do
@@ -459,26 +467,26 @@ RSpec.describe AppBridge::App do
       end
 
       it "works with trigger contexts" do
-        base_account = AppBridge::Account.new("1", "Base Account", JSON.generate({}))
-        context = AppBridge::TriggerContext.new("new-todos", base_account, "{}", "{}")
+        base_connection = AppBridge::Connection.new("1", "Base Connection", JSON.generate({}))
+        context = AppBridge::TriggerContext.new("new-todos", base_connection, "{}", "{}")
         expect { app_with_env.trigger_input_schema(context) }.not_to raise_error
       end
 
       it "works with action contexts" do
-        base_account = AppBridge::Account.new("1", "Base Account", JSON.generate({}))
-        context = AppBridge::ActionContext.new("http-get", base_account, "{}")
+        base_connection = AppBridge::Connection.new("1", "Base Connection", JSON.generate({}))
+        context = AppBridge::ActionContext.new("http-get", base_connection, "{}")
         expect { app_with_env.action_input_schema(context) }.not_to raise_error
       end
 
       it "can execute actions with environment variables" do
-        base_account = AppBridge::Account.new("1", "Base Account", JSON.generate({}))
-        context = AppBridge::ActionContext.new("http-get", base_account, '{"url": "https://httpbin.org/get"}')
+        base_connection = AppBridge::Connection.new("1", "Base Connection", JSON.generate({}))
+        context = AppBridge::ActionContext.new("http-get", base_connection, '{"url": "https://httpbin.org/get"}')
         expect { app_with_env.execute_action(context) }.not_to raise_error
       end
 
       it "returns environment variables in complex-input action output" do
-        base_account = AppBridge::Account.new("1", "Base Account", JSON.generate({}))
-        context = AppBridge::ActionContext.new("complex-input", base_account,
+        base_connection = AppBridge::Connection.new("1", "Base Connection", JSON.generate({}))
+        context = AppBridge::ActionContext.new("complex-input", base_connection,
                                                '{"customer": {"status": "active", "orders": []}}')
         response = app_with_env.execute_action(context)
 
@@ -496,8 +504,8 @@ RSpec.describe AppBridge::App do
       it "handles missing environment variables gracefully" do
         # Test with empty environment variables
         app_empty = AppBridge::App.new(component_path, environment_variables: test_env_vars)
-        base_account = AppBridge::Account.new("1", "Base Account", JSON.generate({}))
-        context = AppBridge::ActionContext.new("complex-input", base_account,
+        base_connection = AppBridge::Connection.new("1", "Base Connection", JSON.generate({}))
+        context = AppBridge::ActionContext.new("complex-input", base_connection,
                                                '{"customer": {"status": "active", "orders": []}}')
         response = app_empty.execute_action(context)
 

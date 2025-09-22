@@ -1,4 +1,4 @@
-pub mod account;
+pub mod connection;
 pub mod trigger_context;
 pub mod trigger_response;
 pub mod trigger_event;

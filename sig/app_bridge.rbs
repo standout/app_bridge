@@ -14,8 +14,8 @@ module AppBridge
     def execute_action: (ActionContext) -> ActionResponse
   end
 
-  class Account
-    def self.new: (String, String, String) -> Account
+  class Connection
+    def self.new: (String, String, String) -> Connection
 
     def id: () -> String
 
@@ -43,23 +43,25 @@ module AppBridge
   end
 
   class TriggerContext
-    def self.new: (String, Account, String) -> TriggerContext
+    def self.new: (String, Connection, String, String) -> TriggerContext
 
     def trigger_id: () -> String
 
-    def account: () -> Account
+    def connection: () -> Connection
 
     def store: () -> String
+
+    def serialized_input: () -> String
   end
 
   class ActionContext
-    def self.new: (String, Account, String) -> ActionContext
+    def self.new: (String, Connection, String) -> ActionContext
 
     def action_id: () -> String
 
-    def account: () -> Account
+    def connection: () -> Connection
 
-    def input: () -> String
+    def serialized_input: () -> String
   end
 
   class ActionResponse
