@@ -91,7 +91,7 @@ impl MutRApp {
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
-                message: "App instance couln't be initialized".to_string(),
+                message: "App instance couldn't be initialized".to_string(),
             }.into())
         }
     }
@@ -125,7 +125,7 @@ impl MutRApp {
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
-                message: "App instance couln't be initialized".to_string(),
+                message: "App instance couldn't be initialized".to_string(),
             }.into())
         }
     }
@@ -159,7 +159,7 @@ impl MutRApp {
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
-                message: "App instance couln't be initialized".to_string(),
+                message: "App instance couldn't be initialized".to_string(),
             }.into())
         }
     }
@@ -204,7 +204,7 @@ impl MutRApp {
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
-                message: "App instance couln't be initialized".to_string(),
+                message: "App instance couldn't be initialized".to_string(),
             })
         }
     }
@@ -237,7 +237,7 @@ impl MutRApp {
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
-                message: "App instance couln't be initialized".to_string(),
+                message: "App instance couldn't be initialized".to_string(),
             }.into())
         }
     }
@@ -271,7 +271,7 @@ impl MutRApp {
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
-                message: "App instance couln't be initialized".to_string(),
+                message: "App instance couldn't be initialized".to_string(),
             }.into())
         }
     }
@@ -305,7 +305,7 @@ impl MutRApp {
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
-                message: "App instance couln't be initialized".to_string(),
+                message: "App instance couldn't be initialized".to_string(),
             }.into())
         }
     }
@@ -350,7 +350,7 @@ impl MutRApp {
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
-                message: "App instance couln't be initialized".to_string(),
+                message: "App instance couldn't be initialized".to_string(),
             })
         }
     }

@@ -116,7 +116,10 @@ pub fn http_action(action_type: &str, context: ActionContext) -> Result<ActionRe
         "http-post" => {
             json!({
                 "url": url,
-                "body": body_value,
+                "body": {
+                    "content": body_value.as_ref().and_then(|v| v.as_str()).unwrap_or(""),
+                    "content_type": "application/json"
+                },
                 "response": response_data
             })
         },
@@ -148,7 +151,6 @@ pub fn complex_input_action(context: ActionContext) -> Result<ActionResponse, Ap
 
     // Get all environment variables
     for (key, value) in std::env::vars() {
-        println!("Found environment variable {}: {}", key, value);
         environment_variables[key] = json!(value);
     }
 

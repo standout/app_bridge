@@ -123,7 +123,10 @@ export const actionBuilder = (resource) => {
       if (resource === "post") {
         output = {
           url: url,
-          body: bodyValue,
+          body: {
+            content: bodyValue || "",
+            content_type: "application/json"
+          },
           response: responseData
         };
       } else {
