@@ -337,12 +337,10 @@ struct App;
 
 impl TriggersGuest for App {
     fn trigger_ids() -> Result<Vec<String>, TriggersAppError> {
-        register_triggers();
         trigger_ids()
     }
 
     fn input_schema(context: TriggerContext) -> Result<String, TriggersAppError> {
-        register_triggers();
 
         if let Ok(connection_data) = serde_json::from_str::<serde_json::Value>(&context.connection.serialized_data) {
             if let Some(custom) = connection_data.get("custom") {
@@ -370,7 +368,6 @@ impl TriggersGuest for App {
     }
 
     fn output_schema(context: TriggerContext) -> Result<String, TriggersAppError> {
-        register_triggers();
 
         if let Ok(connection_data) = serde_json::from_str::<serde_json::Value>(&context.connection.serialized_data) {
             if let Some(custom) = connection_data.get("custom") {
@@ -416,7 +413,6 @@ impl TriggersGuest for App {
     }
 
     fn fetch_events(context: TriggerContext) -> Result<TriggerResponse, TriggersAppError> {
-        register_triggers();
         // Call the trigger function
         call_trigger(context)
     }
@@ -424,12 +420,10 @@ impl TriggersGuest for App {
 
 impl ActionsGuest for App {
     fn action_ids() -> Result<Vec<String>, ActionsAppError> {
-        register_actions();
         action_ids()
     }
 
     fn input_schema(context: ActionContext) -> Result<String, ActionsAppError> {
-        register_actions();
 
         if let Ok(connection_data) = serde_json::from_str::<serde_json::Value>(&context.connection.serialized_data) {
             if let Some(custom) = connection_data.get("custom") {
@@ -536,7 +530,6 @@ impl ActionsGuest for App {
     }
 
     fn output_schema(context: ActionContext) -> Result<String, ActionsAppError> {
-        register_actions();
 
         if let Ok(connection_data) = serde_json::from_str::<serde_json::Value>(&context.connection.serialized_data) {
             if let Some(custom) = connection_data.get("custom") {
@@ -599,7 +592,6 @@ impl ActionsGuest for App {
     }
 
     fn execute(context: ActionContext) -> Result<ActionResponse, ActionsAppError> {
-        register_actions();
         // Call the action function
         call_action(context)
     }
