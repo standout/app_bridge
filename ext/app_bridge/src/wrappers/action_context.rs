@@ -35,8 +35,8 @@ impl RActionContext {
         self.inner.action_id.clone()
     }
 
-    pub fn connection(&self) -> Option<RConnection> {
-        self.wrapped_connection.clone()
+    pub fn connection(&self) -> RConnection {
+        self.wrapped_connection.clone().unwrap()
     }
 
     pub fn serialized_input(&self) -> String {
