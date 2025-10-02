@@ -19,5 +19,9 @@ module AppBridge
   end
 end
 
-# Load the extension after the module is defined
-require_relative "app_bridge/app_bridge"
+# Load using the Ruby version as the directory name
+begin
+  require "app_bridge/#{RUBY_VERSION.split(".").first(2).join(".")}/app_bridge"
+rescue LoadError
+  require "app_bridge/app_bridge"
+end
