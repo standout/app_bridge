@@ -2,7 +2,7 @@
 name = "app_bridge"
 # When updating the version, please also update the version in the
 # lib/app_bridge/version.rb file to keep them in sync.
-version = "2.1.0"
+version = "2.1.1"
 edition = "2021"
 authors = ["Alexander Ross <ross@standout.se>"]
 publish = false
