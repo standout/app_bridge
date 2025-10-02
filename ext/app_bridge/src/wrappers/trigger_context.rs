@@ -35,8 +35,8 @@ impl RTriggerContext {
         self.inner.trigger_id.clone()
     }
 
-    pub fn connection(&self) -> Option<RConnection> {
-        self.wrapped_connection.clone()
+    pub fn connection(&self) -> RConnection {
+        self.wrapped_connection.clone().unwrap()
     }
 
     pub fn store(&self) -> String {
