@@ -1,4 +1,4 @@
-import { RequestBuilder } from 'standout:app/http@2.1.1';
+import { RequestBuilder } from 'standout:app/http@2.1.2';
 import { AppError } from './app_error.mjs';
 import { safeInt } from './utils.mjs';
 

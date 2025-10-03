@@ -4,7 +4,7 @@
     "@bytecodealliance/jco": "^1.11.1"
   },
   "scripts": {
-    "build": "npm install && esbuild src/index.mjs --bundle --format=esm --platform=node --external:standout:app/http@2.1.1 --external:standout:app/environment@2.1.1 --outfile=build/bundle.mjs && jco componentize build/bundle.mjs --wit ../../../../ext/app_bridge/wit/world.wit --world-name bridge --out ../js_app.wasm --disable all"
+    "build": "npm install && esbuild src/index.mjs --bundle --format=esm --platform=node --external:standout:app/http@2.1.2 --external:standout:app/environment@2.1.2 --outfile=build/bundle.mjs && jco componentize build/bundle.mjs --wit ../../../../ext/app_bridge/wit/world.wit --world-name bridge --out ../js_app.wasm --disable all"
   },
   "devDependencies": {
     "esbuild": "^0.25.4"
