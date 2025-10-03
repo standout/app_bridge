@@ -13,7 +13,7 @@ crate-type = ["cdylib"]
 [dependencies]
 magnus = { version = "0.7.1" }
 wasmtime = "32.0.0"
-wasmtime-wasi = "32.0.0"
+wasmtime-wasi = "37.0.1"
 reqwest = { version = "0.12", features = ["blocking", "json", "native-tls-vendored"] }
 
 [dev-dependencies]
