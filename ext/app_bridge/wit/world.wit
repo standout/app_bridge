@@ -1,4 +1,4 @@
-package standout:app@2.1.2;
+package standout:app@3.0.0;
 
 interface types {
   // The trigger-store is a string that is used to store data between trigger
@@ -133,6 +133,12 @@ interface types {
 
     /// A catch-all for all other types of errors. Should include a descriptive message.
     other,
+
+    /// Complete the current workflow execution.
+    complete-workflow,
+
+    /// Complete the parent step execution.
+    complete-parent,
   }
 }
 

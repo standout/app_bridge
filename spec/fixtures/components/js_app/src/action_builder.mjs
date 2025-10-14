@@ -1,5 +1,5 @@
-import { RequestBuilder } from 'standout:app/http@2.1.2';
-import { envVars, envVar } from 'standout:app/environment@2.1.2';
+import { RequestBuilder } from 'standout:app/http@3.0.0';
+import { envVars, envVar } from 'standout:app/environment@3.0.0';
 import { AppError } from './app_error.mjs';
 
 export const actionBuilder = (resource) => {

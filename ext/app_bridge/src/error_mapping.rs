@@ -19,6 +19,8 @@ impl From<ErrorCode> for ExceptionClass {
         ErrorCode::InternalError => get_class("AppBridge::InternalError"),
         ErrorCode::MalformedResponse => get_class("AppBridge::MalformedResponseError"),
         ErrorCode::Other => get_class("AppBridge::OtherError"),
+        ErrorCode::CompleteWorkflow => get_class("AppBridge::CompleteWorkflowException"),
+        ErrorCode::CompleteParent => get_class("AppBridge::CompleteParentException"),
     }
   }
 }
