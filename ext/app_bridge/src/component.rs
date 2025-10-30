@@ -2,7 +2,7 @@ use std::result::Result::Ok;
 use std::collections::HashMap;
 use wasmtime::component::{bindgen, Component, Linker};
 use wasmtime::{Engine, Result, Store};
-use wasmtime_wasi::WasiCtxBuilder;
+use wasmtime_wasi::p2::WasiCtxBuilder;
 
 bindgen!({
     path: "./wit",
@@ -17,7 +17,7 @@ pub fn build_engine() -> Engine {
 
 pub fn build_linker(engine: &Engine) -> Result<Linker<AppState>> {
     let mut linker = Linker::<AppState>::new(&engine);
-    wasmtime_wasi::add_to_linker_sync(&mut linker)?;
+    wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
     standout::app::http::add_to_linker(&mut linker, |s| s)?;
     standout::app::environment::add_to_linker(&mut linker, |s| s)?;
 
