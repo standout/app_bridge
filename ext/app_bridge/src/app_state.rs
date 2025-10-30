@@ -4,7 +4,7 @@ use reqwest::blocking::Client;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use wasmtime::component::ResourceTable;
-use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiView, IoView};
+use wasmtime_wasi::p2::{WasiCtx, WasiCtxBuilder, WasiView, IoView};
 
 pub struct AppState {
     ctx: WasiCtx,
