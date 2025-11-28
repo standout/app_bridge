@@ -28,6 +28,8 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     module.define_error("InternalError", error)?;
     module.define_error("MalformedResponseError", error)?;
     module.define_error("OtherError", error)?;
+    module.define_error("CompleteWorkflowException", error)?;
+    module.define_error("CompleteParentException", error)?;
 
     // Define the Connection class
     let connection_class = module.define_class("Connection", ruby.class_object())?;
