@@ -7,6 +7,6 @@
     "build": "npm install && esbuild src/index.mjs --bundle --format=esm --platform=node --external:standout:app/http@3.0.0 --external:standout:app/environment@3.0.0 --outfile=build/bundle.mjs && jco componentize build/bundle.mjs --wit ../../../../ext/app_bridge/wit/world.wit --world-name bridge --out ../js_app.wasm --disable all"
   },
   "devDependencies": {
-    "esbuild": "^0.27.0"
+    "esbuild": "^0.27.2"
   }
 }
