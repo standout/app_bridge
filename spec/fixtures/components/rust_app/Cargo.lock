@@ -151,6 +151,7 @@ dependencies = [
 name = "rust_app"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "ctor",
  "once_cell",
  "serde_json",

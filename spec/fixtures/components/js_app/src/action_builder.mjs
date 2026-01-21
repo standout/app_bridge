@@ -1,11 +1,42 @@
-import { RequestBuilder } from 'standout:app/http@3.0.0';
-import { envVars, envVar } from 'standout:app/environment@3.0.0';
+import { RequestBuilder } from 'standout:app/http@4.0.0';
+import { envVars, envVar } from 'standout:app/environment@4.0.0';
+import { normalize } from 'standout:app/file@4.0.0';
 import { AppError } from './app_error.mjs';
 
 export const actionBuilder = (resource) => {
   return async (context) => {
     try {
       const input = JSON.parse(context.serializedInput);
+
+      // File normalize action - normalizes any source (URL, base64, data URI) to FileData
+      if (resource === "file-normalize") {
+        // Get the source (can be URL, base64, or data URI)
+        const source = input.source || input.url || input.base64 || input.data_uri;
+        if (!source) {
+          throw AppError.misconfigured("Missing 'source' in input");
+        }
+
+        // Get optional headers (array of [key, value] tuples) for URL requests
+        const headers = input.headers || null;
+        // Get optional filename override
+        const filename = input.filename || null;
+
+        // Use file.normalize - automatically detects input type
+        // Returns { base64, contentType, filename }
+        // The platform will find fields with format: "file-output" in the schema
+        // and replace this data with the blob ID from file_uploader
+        const fileData = normalize(source, headers, filename);
+
+        return {
+          serializedOutput: JSON.stringify({
+            file: {
+              base64: fileData.base64,
+              content_type: fileData.contentType,
+              filename: fileData.filename
+            }
+          })
+        };
+      }
 
       if (resource === "complex") {
         const customer = input.customer;

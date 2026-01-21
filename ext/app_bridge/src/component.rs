@@ -20,6 +20,7 @@ pub fn build_linker(engine: &Engine) -> Result<Linker<AppState>> {
     wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
     standout::app::http::add_to_linker(&mut linker, |s| s)?;
     standout::app::environment::add_to_linker(&mut linker, |s| s)?;
+    standout::app::file::add_to_linker(&mut linker, |s| s)?;
 
     Ok(linker)
 }
