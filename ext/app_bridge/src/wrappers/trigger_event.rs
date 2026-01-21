@@ -1,5 +1,5 @@
 use magnus::{prelude::*, Error, TryConvert, Value};
-use crate::component::standout::app::types::TriggerEvent;
+use crate::types::TriggerEvent;
 
 #[magnus::wrap(class = "AppBridge::TriggerEvent")]
 pub struct RTriggerEvent {
@@ -8,9 +8,9 @@ pub struct RTriggerEvent {
 
 impl RTriggerEvent {
     pub fn new(id: String, serialized_data: String) -> Self {
-        let inner: TriggerEvent = TriggerEvent {
-            id: id,
-            serialized_data: serialized_data,
+        let inner = TriggerEvent {
+            id,
+            serialized_data,
         };
         Self { inner }
     }

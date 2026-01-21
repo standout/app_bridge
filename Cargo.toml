@@ -5,4 +5,4 @@
 [workspace]
 members = ["./ext/app_bridge"]
 resolver = "2"
-exclude = ["./spec/fixtures/components/rust_app"]
+exclude = ["./spec/fixtures/components/rust_app", "./spec/fixtures/components/rust_app_v3"]

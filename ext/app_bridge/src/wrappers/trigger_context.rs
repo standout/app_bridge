@@ -1,5 +1,5 @@
 use magnus::{prelude::*, Error, TryConvert, Value};
-use crate::component::standout::app::types::TriggerContext;
+use crate::types::TriggerContext;
 use super::connection::RConnection;
 
 #[magnus::wrap(class = "AppBridge::TriggerContext")]
@@ -20,10 +20,10 @@ impl RTriggerContext {
         };
 
         let inner = TriggerContext {
-            trigger_id: trigger_id,
+            trigger_id,
             connection: wrapped_connection.clone().into(),
-            store: store,
-            serialized_input: serialized_input,
+            store,
+            serialized_input,
         };
         Ok(Self {
             inner,
@@ -65,10 +65,10 @@ impl TryConvert for RTriggerContext {
         };
 
         let inner = TriggerContext {
-            trigger_id: trigger_id,
+            trigger_id,
             connection: wrapped_connection.clone().inner,
-            store: store,
-            serialized_input: serialized_input,
+            store,
+            serialized_input,
         };
 
         Ok(Self {

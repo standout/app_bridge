@@ -1,5 +1,5 @@
 use crate::app_state::AppState;
-use crate::component::standout::app::file::{FileData, FileError, Host};
+use crate::component::v4;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 
 /// Detects the type of input string
@@ -66,16 +66,30 @@ fn detect_content_type(bytes: &[u8]) -> String {
         .unwrap_or_else(|| "application/octet-stream".to_string())
 }
 
+// ============================================================================
+// Internal error type (version-agnostic)
+// ============================================================================
+
+/// Internal error type for file operations - converted to version-specific errors by macros
+#[derive(Debug)]
+#[allow(dead_code)] // Timeout and Other are needed for WIT compatibility but not currently used
+enum NormalizeError {
+    FetchFailed(String),
+    InvalidInput(String),
+    Timeout(String),
+    Other(String),
+}
+
 /// Parses a data URI and returns (content_type, decoded_bytes)
-fn parse_data_uri(data_uri: &str) -> Result<(String, Vec<u8>), FileError> {
+fn parse_data_uri(data_uri: &str) -> Result<(String, Vec<u8>), NormalizeError> {
     // Format: data:[<mediatype>][;base64],<data>
     let without_prefix = data_uri
         .strip_prefix("data:")
-        .ok_or_else(|| FileError::InvalidInput("Invalid data URI format".to_string()))?;
+        .ok_or_else(|| NormalizeError::InvalidInput("Invalid data URI format".to_string()))?;
 
     let (metadata, data) = without_prefix
         .split_once(',')
-        .ok_or_else(|| FileError::InvalidInput("Data URI missing comma separator".to_string()))?;
+        .ok_or_else(|| NormalizeError::InvalidInput("Data URI missing comma separator".to_string()))?;
 
     let is_base64 = metadata.ends_with(";base64");
     let content_type = if is_base64 {
@@ -89,11 +103,11 @@ fn parse_data_uri(data_uri: &str) -> Result<(String, Vec<u8>), FileError> {
     let bytes = if is_base64 {
         BASE64
             .decode(data)
-            .map_err(|e| FileError::InvalidInput(format!("Invalid base64 in data URI: {}", e)))?
+            .map_err(|e| NormalizeError::InvalidInput(format!("Invalid base64 in data URI: {}", e)))?
     } else {
         // URL-encoded data
         urlencoding_decode(data)
-            .map_err(|e| FileError::InvalidInput(format!("Invalid URL encoding: {}", e)))?
+            .map_err(|e| NormalizeError::InvalidInput(format!("Invalid URL encoding: {}", e)))?
     };
 
     Ok((content_type.to_string(), bytes))
@@ -129,7 +143,7 @@ fn fetch_url(
     client: &reqwest::blocking::Client,
     url: &str,
     headers: Option<&Vec<(String, String)>>,
-) -> Result<(Vec<u8>, Option<String>, Option<String>), FileError> {
+) -> Result<(Vec<u8>, Option<String>, Option<String>), NormalizeError> {
     let mut request = client.get(url);
 
     // Add custom headers if provided
@@ -141,10 +155,10 @@ fn fetch_url(
 
     let response = request
         .send()
-        .map_err(|e| FileError::FetchFailed(format!("Request failed: {}", e)))?;
+        .map_err(|e| NormalizeError::FetchFailed(format!("Request failed: {}", e)))?;
 
     if !response.status().is_success() {
-        return Err(FileError::FetchFailed(format!(
+        return Err(NormalizeError::FetchFailed(format!(
             "HTTP {} {}",
             response.status().as_u16(),
             response.status().canonical_reason().unwrap_or("Unknown")
@@ -161,58 +175,87 @@ fn fetch_url(
 
     let bytes = response
         .bytes()
-        .map_err(|e| FileError::FetchFailed(format!("Failed to read response body: {}", e)))?
+        .map_err(|e| NormalizeError::FetchFailed(format!("Failed to read response body: {}", e)))?
         .to_vec();
 
     Ok((bytes, content_type, filename))
 }
 
-impl Host for AppState {
-    /// Normalize any file source to FileData
-    ///
-    /// Automatically detects input type:
-    /// - URL: fetches with optional headers
-    /// - Data URI: parses and extracts
-    /// - Base64: decodes to detect content type
-    ///
-    /// Optional filename overrides auto-detection
-    fn normalize(
-        &mut self,
-        source: String,
-        headers: Option<Vec<(String, String)>>,
-        filename: Option<String>,
-    ) -> Result<FileData, FileError> {
-        let (bytes, content_type, url_filename) = match detect_input_type(&source) {
-            InputType::Url => {
-                let client = self.client.lock().unwrap();
-                fetch_url(&client, &source, headers.as_ref())?
-            }
-            InputType::DataUri => {
-                let (ct, bytes) = parse_data_uri(&source)?;
-                (bytes, Some(ct), None)
-            }
-            InputType::Base64 => {
-                let bytes = BASE64
-                    .decode(&source)
-                    .map_err(|e| FileError::InvalidInput(format!("Invalid base64: {}", e)))?;
-                (bytes, None, None)
-            }
-        };
+// ============================================================================
+// Shared file normalization logic (used by all versions with file interface)
+// ============================================================================
 
-        let detected_type = content_type.unwrap_or_else(|| detect_content_type(&bytes));
+fn normalize_file(
+    client: &std::sync::Arc<std::sync::Mutex<reqwest::blocking::Client>>,
+    source: &str,
+    headers: Option<&Vec<(String, String)>>,
+    filename: Option<String>,
+) -> Result<(String, String, String), NormalizeError> {
+    let (bytes, content_type, url_filename) = match detect_input_type(source) {
+        InputType::Url => {
+            let client = client.lock().unwrap();
+            fetch_url(&client, source, headers)?
+        }
+        InputType::DataUri => {
+            let (ct, bytes) = parse_data_uri(source)?;
+            (bytes, Some(ct), None)
+        }
+        InputType::Base64 => {
+            let bytes = BASE64
+                .decode(source)
+                .map_err(|e| NormalizeError::InvalidInput(format!("Invalid base64: {}", e)))?;
+            (bytes, None, None)
+        }
+    };
 
-        // Priority: explicit filename > URL filename > generated from content type
-        let final_filename = filename
-            .or(url_filename)
-            .unwrap_or_else(|| filename_from_content_type(&detected_type));
+    let detected_type = content_type.unwrap_or_else(|| detect_content_type(&bytes));
 
-        Ok(FileData {
-            base64: BASE64.encode(&bytes),
-            content_type: detected_type,
-            filename: final_filename,
-        })
-    }
+    // Priority: explicit filename > URL filename > generated from content type
+    let final_filename = filename
+        .or(url_filename)
+        .unwrap_or_else(|| filename_from_content_type(&detected_type));
+
+    Ok((BASE64.encode(&bytes), detected_type, final_filename))
 }
+
+// ============================================================================
+// Macro to implement file::Host for any version that has the file interface
+//
+// When adding v5 (if it has the file interface), just add:
+//   impl_file_host!(v5);
+// ============================================================================
+
+macro_rules! impl_file_host {
+    ($v:ident) => {
+        impl $v::standout::app::file::Host for AppState {
+            fn normalize(
+                &mut self,
+                source: String,
+                headers: Option<Vec<(String, String)>>,
+                filename: Option<String>,
+            ) -> Result<$v::standout::app::file::FileData, $v::standout::app::file::FileError> {
+                match normalize_file(&self.client, &source, headers.as_ref(), filename) {
+                    Ok((base64, content_type, filename)) => Ok($v::standout::app::file::FileData {
+                        base64,
+                        content_type,
+                        filename,
+                    }),
+                    Err(e) => Err(match e {
+                        NormalizeError::FetchFailed(msg) => $v::standout::app::file::FileError::FetchFailed(msg),
+                        NormalizeError::InvalidInput(msg) => $v::standout::app::file::FileError::InvalidInput(msg),
+                        NormalizeError::Timeout(msg) => $v::standout::app::file::FileError::Timeout(msg),
+                        NormalizeError::Other(msg) => $v::standout::app::file::FileError::Other(msg),
+                    }),
+                }
+            }
+        }
+    };
+}
+
+// Generate file::Host implementation for v4
+// Note: v3 doesn't have the file interface, so no impl needed
+// When adding v5, add: impl_file_host!(v5);
+impl_file_host!(v4);
 
 #[cfg(test)]
 mod tests {

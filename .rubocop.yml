@@ -13,3 +13,4 @@ Metrics/BlockLength:
   Exclude:
     - 'spec/**/*_spec.rb'
     - '*.gemspec'
+    - 'tasks/*.rake'

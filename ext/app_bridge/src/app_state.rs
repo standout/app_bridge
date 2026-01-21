@@ -1,5 +1,5 @@
-use crate::component::standout;
-use crate::component::standout::app::http::Request;
+use crate::component::{v3, v4};
+use crate::component::v4::standout::app::http::Request;
 use reqwest::blocking::Client;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -28,19 +28,35 @@ impl AppState {
     }
 }
 
-impl standout::app::http::Host for AppState {
-    // Impl http host methods here
+// ============================================================================
+// Macro to implement identical Host traits for multiple WIT versions
+// ============================================================================
+
+/// Implements http::Host and environment::Host for a given WIT version module.
+/// These implementations are identical across versions.
+macro_rules! impl_host_for_version {
+    ($version:ident) => {
+        impl $version::standout::app::http::Host for AppState {}
+
+        impl $version::standout::app::environment::Host for AppState {
+            fn env_vars(&mut self) -> Vec<(String, String)> {
+                self.environment_variables.clone().into_iter().collect()
+            }
+
+            fn env_var(&mut self, name: String) -> Option<String> {
+                self.environment_variables.get(&name).cloned()
+            }
+        }
+    };
 }
 
-impl standout::app::environment::Host for AppState {
-    fn env_vars(&mut self) -> Vec<(String, String)> {
-        self.environment_variables.clone().into_iter().collect()
-    }
+// Apply to both versions
+impl_host_for_version!(v3);
+impl_host_for_version!(v4);
 
-    fn env_var(&mut self, name: String) -> Option<String> {
-        self.environment_variables.get(&name).cloned()
-    }
-}
+// ============================================================================
+// WASI implementations
+// ============================================================================
 
 impl IoView for AppState {
     fn table(&mut self) -> &mut ResourceTable {

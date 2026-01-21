@@ -1,5 +1,5 @@
 use magnus::{prelude::*, Error, TryConvert, Value};
-use crate::component::standout::app::types::ActionContext;
+use crate::types::ActionContext;
 use super::connection::RConnection;
 
 #[magnus::wrap(class = "AppBridge::ActionContext")]
@@ -20,7 +20,7 @@ impl RActionContext {
         };
 
         let inner = ActionContext {
-            action_id: action_id,
+            action_id,
             connection: wrapped_connection.clone().into(),
             serialized_input,
         };
@@ -60,7 +60,7 @@ impl TryConvert for RActionContext {
         };
 
         let inner = ActionContext {
-            action_id: action_id,
+            action_id,
             connection: wrapped_connection.clone().inner,
             serialized_input,
         };

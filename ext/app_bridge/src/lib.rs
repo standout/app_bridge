@@ -1,9 +1,10 @@
 use magnus::{function, method, prelude::*, Error, Ruby};
 mod app_state;
 mod component;
-mod request_builder;
 mod error_mapping;
 mod file_ops;
+mod request_builder;
+mod types;
 
 mod wrappers;
 use wrappers::connection::RConnection;

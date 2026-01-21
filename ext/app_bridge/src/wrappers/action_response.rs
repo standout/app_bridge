@@ -1,4 +1,4 @@
-use crate::component::standout::app::types::ActionResponse;
+use crate::types::ActionResponse;
 
 #[magnus::wrap(class = "AppBridge::ActionResponse")]
 pub struct RActionResponse {
@@ -8,7 +8,7 @@ pub struct RActionResponse {
 impl RActionResponse {
     pub fn new(serialized_output: String) -> Self {
         let inner = ActionResponse {
-            serialized_output: serialized_output,
+            serialized_output,
         };
         Self { inner }
     }
@@ -34,4 +34,3 @@ impl From<RActionResponse> for ActionResponse {
         value.inner
     }
 }
-

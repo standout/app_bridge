@@ -2,7 +2,7 @@
 
 require "English"
 
-namespace :fixtures do # rubocop:disable Metrics/BlockLength
+namespace :fixtures do
   namespace :apps do
     desc "Clean up build artifacts"
     task :clean do
@@ -37,8 +37,22 @@ namespace :fixtures do # rubocop:disable Metrics/BlockLength
       Process.wait(pid)
       raise "Failed to build artifacts" unless $CHILD_STATUS.success?
     end
+
+    desc "Compile the v3 fixture app (for backward compatibility testing)"
+    task :compile_rust_v3 do
+      pwd = "spec/fixtures/components/rust_app_v3"
+      next unless File.exist?(pwd)
+
+      compile_pid = Process.spawn("cargo clean && cargo build --release --target wasm32-wasip2",
+                                  chdir: pwd)
+      Process.wait(compile_pid)
+      raise "Failed to build v3 artifacts" unless $CHILD_STATUS.success?
+
+      move_pid = Process.spawn("mv #{pwd}/target/wasm32-wasip2/release/rust_app_v3.wasm #{pwd}/../rust_app_v3.wasm")
+      Process.wait(move_pid)
+    end
   end
 end
 
 desc "Build all fixtures"
-task fixtures: %i[fixtures:apps:clean fixtures:apps:compile_rust fixtures:apps:compile_js]
+task fixtures: %i[fixtures:apps:clean fixtures:apps:compile_rust fixtures:apps:compile_js fixtures:apps:compile_rust_v3]
