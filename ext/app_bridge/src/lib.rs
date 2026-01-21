@@ -3,6 +3,7 @@ mod app_state;
 mod component;
 mod request_builder;
 mod error_mapping;
+mod file_ops;
 
 mod wrappers;
 use wrappers::connection::RConnection;
@@ -68,6 +69,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     let action_response_class = module.define_class("ActionResponse", ruby.class_object())?;
     action_response_class.define_singleton_method("new", function!(RActionResponse::new, 1))?;
     action_response_class.define_method("serialized_output", method!(RActionResponse::serialized_output, 0))?;
+    action_response_class.define_method("with_output", method!(RActionResponse::with_output, 1))?;
 
     // Define the App class
     let app_class = module.define_class("App", ruby.class_object())?;

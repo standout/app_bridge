@@ -282,9 +282,70 @@ const complexInputOutputSchema = `{
   "additionalProperties": false
 }`;
 
+// File normalize action schema - handles URL, base64, or data URI (auto-detected)
+const fileNormalizeInputSchema = `{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "File source - can be URL, base64, or data URI (auto-detected)"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to fetch the file from (alternative to source)"
+    },
+    "base64": {
+      "type": "string",
+      "description": "Base64 encoded file content (alternative to source)"
+    },
+    "data_uri": {
+      "type": "string",
+      "description": "Data URI with embedded content (alternative to source)"
+    },
+    "headers": {
+      "type": "array",
+      "description": "Optional HTTP headers for URL requests",
+      "items": {
+        "type": "array",
+        "items": { "type": "string" },
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "filename": {
+      "type": "string",
+      "description": "Optional filename override (auto-detected if not provided)"
+    }
+  },
+  "additionalProperties": false
+}`;
+
+const fileNormalizeOutputSchema = `{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "file": {
+      "type": "object",
+      "format": "file-output",
+      "description": "Normalized file data - will be replaced with blob ID by platform",
+      "properties": {
+        "filename": { "type": "string" },
+        "content_type": { "type": "string" },
+        "base64": { "type": "string" }
+      },
+      "required": ["filename", "content_type", "base64"]
+    }
+  },
+  "required": ["file"],
+  "additionalProperties": false
+}`;
+
 ActionRegister.register("http-get", actionBuilder("get"), httpGetInputSchema, httpGetOutputSchema);
 ActionRegister.register("http-post", actionBuilder("post"), httpPostInputSchema, httpPostOutputSchema);
 ActionRegister.register("complex-input", actionBuilder("complex"), complexInputSchema, complexInputOutputSchema);
+ActionRegister.register("file-normalize", actionBuilder("file-normalize"), fileNormalizeInputSchema, fileNormalizeOutputSchema);
 
 export const triggers = {
   triggerIds() {

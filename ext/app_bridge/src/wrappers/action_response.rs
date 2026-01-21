@@ -16,6 +16,11 @@ impl RActionResponse {
     pub fn serialized_output(&self) -> String {
         self.inner.serialized_output.clone()
     }
+
+    /// Returns a new ActionResponse with the given output
+    pub fn with_output(&self, value: String) -> Self {
+        Self::new(value)
+    }
 }
 
 impl From<ActionResponse> for RActionResponse {

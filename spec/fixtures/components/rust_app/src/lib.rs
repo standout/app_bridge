@@ -331,6 +331,70 @@ fn register_actions() {
     let complex_input_wrapper = |context: ActionContext| action_builder::complex_input_action(context);
 
     register_action("complex-input", complex_input_wrapper, complex_input_schema, complex_input_output_schema);
+
+    // File normalize action schema - handles URL, base64, or data URI
+    let file_normalize_input_schema = r#"{
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+            "source": {
+                "type": "string",
+                "description": "File source - can be URL, base64, or data URI (auto-detected)"
+            },
+            "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "URL to fetch the file from (alternative to source)"
+            },
+            "base64": {
+                "type": "string",
+                "description": "Base64 encoded file content (alternative to source)"
+            },
+            "data_uri": {
+                "type": "string",
+                "description": "Data URI with embedded content (alternative to source)"
+            },
+            "headers": {
+                "type": "array",
+                "description": "Optional HTTP headers for URL requests",
+                "items": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "minItems": 2,
+                    "maxItems": 2
+                }
+            },
+            "filename": {
+                "type": "string",
+                "description": "Optional filename override (auto-detected if not provided)"
+            }
+        },
+        "additionalProperties": false
+    }"#;
+
+    let file_normalize_output_schema = r#"{
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+            "file": {
+                "type": "object",
+                "format": "file-output",
+                "description": "Normalized file data - will be replaced with blob ID by platform",
+                "properties": {
+                    "filename": { "type": "string" },
+                    "content_type": { "type": "string" },
+                    "base64": { "type": "string" }
+                },
+                "required": ["filename", "content_type", "base64"]
+            }
+        },
+        "required": ["file"],
+        "additionalProperties": false
+    }"#;
+
+    let file_normalize_wrapper = |context: ActionContext| action_builder::file_normalize_action(context);
+
+    register_action("file-normalize", file_normalize_wrapper, file_normalize_input_schema, file_normalize_output_schema);
 }
 
 struct App;

@@ -3,11 +3,15 @@ use crate::standout::app::{
       Method,
       RequestBuilder,
     },
+    file::normalize as file_normalize,
     types::{
       ErrorCode, ActionContext, ActionResponse, AppError
     }
 };
 use serde_json::{Value, json};
+
+// Note: file_normalize returns FileData { base64, content_type, filename }
+// It automatically detects input type (URL, data URI, base64)
 
 pub fn http_action(action_type: &str, context: ActionContext) -> Result<ActionResponse, AppError> {
     // Parse the input to get the URL and body
@@ -167,6 +171,77 @@ pub fn complex_input_action(context: ActionContext) -> Result<ActionResponse, Ap
     });
 
     // Return the processed data as serialized output
+    Ok(ActionResponse {
+        serialized_output: output.to_string(),
+    })
+}
+
+/// File normalize action - normalizes any file source to FileData
+/// Automatically detects input type: URL, data URI, or base64
+/// The platform will process this based on output schema and replace with blob ID
+pub fn file_normalize_action(context: ActionContext) -> Result<ActionResponse, AppError> {
+    let input: Value = serde_json::from_str(&context.serialized_input)
+        .map_err(|_| AppError {
+            code: ErrorCode::MalformedResponse,
+            message: "Invalid JSON input".to_string(),
+        })?;
+
+    // Get source - can be url, base64, data_uri, or the generic "source" field
+    let source = input.get("source")
+        .or_else(|| input.get("url"))
+        .or_else(|| input.get("base64"))
+        .or_else(|| input.get("data_uri"))
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError {
+            code: ErrorCode::Misconfigured,
+            message: "Missing 'source' in input".to_string(),
+        })?;
+
+    // Get optional headers as Vec<(String, String)> for URL requests
+    let headers: Option<Vec<(String, String)>> = input.get("headers")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|item| {
+                    let pair = item.as_array()?;
+                    if pair.len() == 2 {
+                        Some((
+                            pair[0].as_str()?.to_string(),
+                            pair[1].as_str()?.to_string(),
+                        ))
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        });
+
+    // Get optional filename override
+    let filename = input.get("filename").and_then(|v| v.as_str()).map(|s| s.to_string());
+
+    // Use file.normalize - automatically detects input type
+    // Returns FileData { base64, content_type, filename }
+    // The platform will find fields with format: "file-output" in the schema
+    // and replace this data with the blob ID from file_uploader
+    let file_data = file_normalize(
+        source,
+        headers.as_ref().map(|v| v.as_slice()),
+        filename.as_deref(),
+    )
+    .map_err(|e| AppError {
+        code: ErrorCode::Other,
+        message: format!("Failed to normalize file: {:?}", e),
+    })?;
+
+    // Output the file data - schema should mark "file" with format: "file-output"
+    let output = json!({
+        "file": {
+            "base64": file_data.base64,
+            "content_type": file_data.content_type,
+            "filename": file_data.filename
+        }
+    });
+
     Ok(ActionResponse {
         serialized_output: output.to_string(),
     })
