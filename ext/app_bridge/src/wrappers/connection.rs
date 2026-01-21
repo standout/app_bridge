@@ -1,5 +1,5 @@
 use magnus::{prelude::*, Error, TryConvert, Value};
-use crate::component::standout::app::types::Connection;
+use crate::types::Connection;
 
 #[magnus::wrap(class = "AppBridge::Connection")]
 pub struct RConnection {
@@ -9,9 +9,9 @@ pub struct RConnection {
 impl RConnection {
     pub fn new(id: String, name: String, serialized_data: String) -> Self {
         let inner = Connection {
-            id: id,
-            name: name,
-            serialized_data: serialized_data,
+            id,
+            name,
+            serialized_data,
         };
         Self { inner }
     }
