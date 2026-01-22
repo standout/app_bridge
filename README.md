@@ -18,7 +18,7 @@ bundle install
 
 ## Usage
 
-To use this gem, you need a WebAssembly component that adheres to the specification defined in `ext/app_bridge/wit/world.wit`.
+To use this gem, you need a WebAssembly component that adheres to the specification defined in `ext/app_bridge/wit/v4/world.wit` (or an older supported version like `v3`).
 
 You can check out the example components in `spec/fixtures/components` to see how such a component should be structured.
 

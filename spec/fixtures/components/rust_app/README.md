@@ -25,4 +25,4 @@ Verify the inluded WIT by running:
 wasm-tools component wit target/wasm32-wasip2/release/rust_app.wasm
 ```
 
-It should include the WIT-file defined in `ext/app_bridge/wit/world.wit`.
+It should include the WIT-file defined in `ext/app_bridge/wit/v4/world.wit`.

@@ -11,7 +11,7 @@ use actions::registry::{call_action, action_ids, register_action, input_schema, 
 use triggers::registry as trigger_registry;
 
 generate!({
-    path: "./../../../../ext/app_bridge/wit",
+    path: "./../../../../ext/app_bridge/wit/v4",
     world: "bridge",
 });
 
