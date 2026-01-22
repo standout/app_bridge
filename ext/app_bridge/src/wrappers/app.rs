@@ -25,6 +25,21 @@ pub struct RApp {
 pub struct MutRApp(RefCell<RApp>);
 
 impl MutRApp {
+    /// Returns the WIT version this component was built against (e.g., "3.0.0", "4.0.0")
+    pub fn wit_version(&self) -> Result<String, Error> {
+        let binding = self.0.borrow();
+        let instance = binding.instance.borrow();
+
+        if let Some(instance) = &*instance {
+            Ok(instance.wit_version().to_string())
+        } else {
+            Err(Error::new(
+                magnus::exception::runtime_error(),
+                "App not initialized",
+            ))
+        }
+    }
+
     pub fn initialize(&self, component_path: String, env_vars: HashMap<String, String>) -> Result<(), Error> {
         let mut this = self.0.borrow_mut();
         let engine = build_engine();

@@ -144,6 +144,16 @@ pub enum BridgeWrapper {
     V4(v4::Bridge),
 }
 
+impl BridgeWrapper {
+    /// Returns the WIT version this component was built against
+    pub fn wit_version(&self) -> &'static str {
+        match self {
+            BridgeWrapper::V3(_) => "3.0.0",
+            BridgeWrapper::V4(_) => "4.0.0",
+        }
+    }
+}
+
 /// Macro to implement a bridge method that works across all versions.
 /// Each version's result is converted to canonical types.
 macro_rules! bridge_method {

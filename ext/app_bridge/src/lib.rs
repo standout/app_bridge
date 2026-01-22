@@ -75,6 +75,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     // Define the App class
     let app_class = module.define_class("App", ruby.class_object())?;
     app_class.define_alloc_func::<MutRApp>();
+    app_class.define_method("wit_version", method!(MutRApp::wit_version, 0))?;
     app_class.define_method("trigger_ids", method!(MutRApp::trigger_ids, 0))?;
     app_class.define_method("action_ids", method!(MutRApp::action_ids, 0))?;
     app_class.define_method("action_input_schema", method!(MutRApp::action_input_schema, 1))?;
