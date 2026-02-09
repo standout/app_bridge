@@ -103,6 +103,34 @@ AppBridge.file_uploader = ->(file_data) {
 
 The gem automatically replaces file data with the return value (in this example blob IDs) before returning the action response.
 
+## Retry With Reference
+
+`standout:app@4.1.0` introduces a structured retry error for actions. Connectors can return a retry error with a reference and status, and the platform can pass that back on subsequent retries via `action-context.reference-object`.
+
+### In your WASM connector (Rust)
+
+```rust
+return Err(AppError {
+    code: ErrorCode::RetryWithReference(ReferenceObject {
+        reference: request_id.to_string(),
+        status: status.to_string(),
+    }),
+    message: "Background request still processing".to_string(),
+});
+```
+
+### In the Ruby platform
+
+When the connector returns `retry-with-reference`, the bridge raises `AppBridge::RetryWithReferenceError`. You can access the structured fields:
+
+```ruby
+rescue AppBridge::RetryWithReferenceError => e
+  e.reference # => "ref-123"
+  e.status    # => "queued"
+  e.message   # => "Background request still processing after 1 attempts."
+end
+```
+
 ## Backward Compatibility
 
 The gem supports **multi-version WIT interfaces**, allowing connectors built against older WIT versions to continue working when the gem is updated.

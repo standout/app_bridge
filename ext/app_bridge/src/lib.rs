@@ -1,4 +1,4 @@
-use magnus::{function, method, prelude::*, Error, Ruby};
+use magnus::{function, method, prelude::*, Error, RObject, Ruby, Value};
 mod app_state;
 mod component;
 mod error_mapping;
@@ -15,6 +15,16 @@ use wrappers::action_context::RActionContext;
 use wrappers::action_response::RActionResponse;
 use wrappers::app::MutRApp;
 
+fn retry_reference(exception: Value) -> Result<Value, Error> {
+    let exception = RObject::try_convert(exception)?;
+    exception.ivar_get("@reference")
+}
+
+fn retry_status(exception: Value) -> Result<Value, Error> {
+    let exception = RObject::try_convert(exception)?;
+    exception.ivar_get("@status")
+}
+
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<(), Error> {
     let module = ruby.define_module("AppBridge")?;
@@ -30,6 +40,9 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     module.define_error("InternalError", error)?;
     module.define_error("MalformedResponseError", error)?;
     module.define_error("OtherError", error)?;
+    let retry_error = module.define_error("RetryWithReferenceError", error)?;
+    retry_error.define_method("reference", method!(retry_reference, 0))?;
+    retry_error.define_method("status", method!(retry_status, 0))?;
     module.define_error("CompleteWorkflowException", error)?;
     module.define_error("CompleteParentException", error)?;
 
@@ -62,10 +75,11 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
 
     // Define the Action classes
     let action_context_class = module.define_class("ActionContext", ruby.class_object())?;
-    action_context_class.define_singleton_method("new", function!(RActionContext::new, 3))?;
+    action_context_class.define_singleton_method("new", function!(RActionContext::new, -1))?;
     action_context_class.define_method("action_id", method!(RActionContext::action_id, 0))?;
     action_context_class.define_method("connection", method!(RActionContext::connection, 0))?;
     action_context_class.define_method("serialized_input", method!(RActionContext::serialized_input, 0))?;
+    action_context_class.define_method("reference_object", method!(RActionContext::reference_object, 0))?;
 
     let action_response_class = module.define_class("ActionResponse", ruby.class_object())?;
     action_response_class.define_singleton_method("new", function!(RActionResponse::new, 1))?;

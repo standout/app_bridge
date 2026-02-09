@@ -11,7 +11,6 @@ module AppBridge
   class TooManyEventsError < Error; end
   class StoreTooLargeError < Error; end
   class ActionResponseTooLargeError < Error; end
-  class FileUploadError < Error; end
   class InternalError < Error; end
 
   class << self

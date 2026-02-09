@@ -1,4 +1,4 @@
-use crate::component::{v3, v4};
+use crate::component::{v3, v4, v4_1};
 use crate::component::v4::standout::app::http::Request;
 use reqwest::blocking::Client;
 use std::collections::HashMap;
@@ -53,6 +53,7 @@ macro_rules! impl_host_for_version {
 // Apply to both versions
 impl_host_for_version!(v3);
 impl_host_for_version!(v4);
+impl_host_for_version!(v4_1);
 
 // ============================================================================
 // WASI implementations

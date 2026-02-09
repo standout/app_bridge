@@ -7,7 +7,7 @@ use wasmtime_wasi::p2::WasiCtxBuilder;
 use crate::app_state::AppState;
 use crate::types::{
     ActionContext, ActionResponse, AppError, Connection, ErrorCode, TriggerContext,
-    TriggerEvent, TriggerResponse,
+    ReferenceObject, TriggerEvent, TriggerResponse,
 };
 
 // ============================================================================
@@ -35,13 +35,19 @@ pub mod v4 {
     });
 }
 
+pub mod v4_1 {
+    wasmtime::component::bindgen!({
+        path: "./wit/v4_1",
+        world: "bridge",
+    });
+}
+
 // ============================================================================
 // Version conversion macro - generates From impls for a version module
 // ============================================================================
 
-macro_rules! impl_conversions {
-    ($v:ident) => {
-        // ErrorCode: version → canonical
+macro_rules! impl_error_code_conversion {
+    ($v:ident, $($extra_arms:tt)*) => {
         impl From<$v::standout::app::types::ErrorCode> for ErrorCode {
             fn from(c: $v::standout::app::types::ErrorCode) -> Self {
                 use $v::standout::app::types::ErrorCode as V;
@@ -56,19 +62,17 @@ macro_rules! impl_conversions {
                     V::InternalError => Self::InternalError,
                     V::MalformedResponse => Self::MalformedResponse,
                     V::Other => Self::Other,
+                    $($extra_arms)*
                     V::CompleteWorkflow => Self::CompleteWorkflow,
                     V::CompleteParent => Self::CompleteParent,
                 }
             }
         }
+    };
+}
 
-        // AppError: version → canonical
-        impl From<$v::standout::app::types::AppError> for AppError {
-            fn from(e: $v::standout::app::types::AppError) -> Self {
-                Self { code: e.code.into(), message: e.message }
-            }
-        }
-
+macro_rules! impl_conversions {
+    ($v:ident) => {
         // TriggerEvent: version → canonical
         impl From<$v::standout::app::types::TriggerEvent> for TriggerEvent {
             fn from(e: $v::standout::app::types::TriggerEvent) -> Self {
@@ -116,7 +120,24 @@ macro_rules! impl_conversions {
             }
         }
 
-        // ActionContext: canonical → version
+    };
+}
+
+macro_rules! impl_app_error_conversion {
+    ($v:ident) => {
+        impl From<$v::standout::app::types::AppError> for AppError {
+            fn from(e: $v::standout::app::types::AppError) -> Self {
+                Self {
+                    code: e.code.into(),
+                    message: e.message,
+                }
+            }
+        }
+    };
+}
+
+macro_rules! impl_action_context_conversion_basic {
+    ($v:ident) => {
         impl From<&ActionContext> for $v::standout::app::types::ActionContext {
             fn from(c: &ActionContext) -> Self {
                 Self {
@@ -129,9 +150,55 @@ macro_rules! impl_conversions {
     };
 }
 
+macro_rules! impl_action_context_conversion_retry {
+    ($v:ident) => {
+        impl From<&ActionContext> for $v::standout::app::types::ActionContext {
+            fn from(c: &ActionContext) -> Self {
+                Self {
+                    action_id: c.action_id.clone(),
+                    connection: (&c.connection).into(),
+                    serialized_input: c.serialized_input.clone(),
+                    reference_object: c.reference_object.as_ref().map(Into::into),
+                }
+            }
+        }
+    };
+}
+
+impl From<v4_1::standout::app::types::ReferenceObject> for ReferenceObject {
+    fn from(r: v4_1::standout::app::types::ReferenceObject) -> Self {
+        Self {
+            reference: r.reference,
+            status: r.status,
+        }
+    }
+}
+
+impl From<&ReferenceObject> for v4_1::standout::app::types::ReferenceObject {
+    fn from(r: &ReferenceObject) -> Self {
+        Self {
+            reference: r.reference.clone(),
+            status: r.status.clone(),
+        }
+    }
+}
+
 // Generate conversions for all supported versions
+impl_error_code_conversion!(v3,);
 impl_conversions!(v3);
+impl_app_error_conversion!(v3);
+impl_action_context_conversion_basic!(v3);
+impl_error_code_conversion!(v4,);
 impl_conversions!(v4);
+impl_app_error_conversion!(v4);
+impl_action_context_conversion_basic!(v4);
+impl_error_code_conversion!(
+    v4_1,
+    V::RetryWithReference(r) => Self::RetryWithReference(r.into()),
+);
+impl_conversions!(v4_1);
+impl_app_error_conversion!(v4_1);
+impl_action_context_conversion_retry!(v4_1);
 
 // ============================================================================
 // BridgeWrapper - unified interface for all component versions
@@ -142,6 +209,7 @@ impl_conversions!(v4);
 pub enum BridgeWrapper {
     V3(v3::Bridge),
     V4(v4::Bridge),
+    V4_1(v4_1::Bridge),
 }
 
 impl BridgeWrapper {
@@ -150,6 +218,7 @@ impl BridgeWrapper {
         match self {
             BridgeWrapper::V3(_) => "3.0.0",
             BridgeWrapper::V4(_) => "4.0.0",
+            BridgeWrapper::V4_1(_) => "4.1.0",
         }
     }
 }
@@ -169,6 +238,10 @@ macro_rules! bridge_method {
                     let r = b.$interface().$method(store)?;
                     Ok(r.map_err(Into::into))
                 }
+                BridgeWrapper::V4_1(b) => {
+                    let r = b.$interface().$method(store)?;
+                    Ok(r.map_err(Into::into))
+                }
             }
         }
     };
@@ -184,6 +257,10 @@ macro_rules! bridge_method {
                     let r = b.$interface().$method(store, &ctx.into())?;
                     Ok(r.map(Into::into).map_err(Into::into))
                 }
+                BridgeWrapper::V4_1(b) => {
+                    let r = b.$interface().$method(store, &ctx.into())?;
+                    Ok(r.map(Into::into).map_err(Into::into))
+                }
             }
         }
     };
@@ -196,6 +273,10 @@ macro_rules! bridge_method {
                     Ok(r.map(Into::into).map_err(Into::into))
                 }
                 BridgeWrapper::V4(b) => {
+                    let r = b.$interface().$method(store, &ctx.into())?;
+                    Ok(r.map(Into::into).map_err(Into::into))
+                }
+                BridgeWrapper::V4_1(b) => {
                     let r = b.$interface().$method(store, &ctx.into())?;
                     Ok(r.map(Into::into).map_err(Into::into))
                 }
@@ -242,6 +323,11 @@ pub fn build_linker(engine: &Engine) -> Result<Linker<AppState>> {
     v4::standout::app::environment::add_to_linker(&mut linker, |s| s)?;
     v4::standout::app::file::add_to_linker(&mut linker, |s| s)?;
 
+    // v4.1: http + environment + file
+    v4_1::standout::app::http::add_to_linker(&mut linker, |s| s)?;
+    v4_1::standout::app::environment::add_to_linker(&mut linker, |s| s)?;
+    v4_1::standout::app::file::add_to_linker(&mut linker, |s| s)?;
+
     // Add new versions here:
     // v5::standout::app::http::add_to_linker(&mut linker, |s| s)?;
     // v5::standout::app::environment::add_to_linker(&mut linker, |s| s)?;
@@ -274,7 +360,12 @@ pub fn app(
     let component = Component::from_file(&engine, &file_path)?;
 
     // Try versions newest-first. When adding vN, insert at the top.
-    // v4 (current - has file interface)
+    // v4.1 (current - has file interface)
+    if let Ok(instance) = v4_1::Bridge::instantiate(&mut *store, &component, &linker) {
+        return Ok(BridgeWrapper::V4_1(instance));
+    }
+
+    // v4
     if let Ok(instance) = v4::Bridge::instantiate(&mut *store, &component, &linker) {
         return Ok(BridgeWrapper::V4(instance));
     }
@@ -285,6 +376,6 @@ pub fn app(
     }
 
     Err(wasmtime::Error::msg(
-        "Failed to instantiate component: no compatible WIT version found (tried v4, v3)",
+        "Failed to instantiate component: no compatible WIT version found (tried v4.1, v4, v3)",
     ))
 }
