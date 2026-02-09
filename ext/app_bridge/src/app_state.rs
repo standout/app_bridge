@@ -11,6 +11,7 @@ pub struct AppState {
     table: ResourceTable,
     pub client: Arc<Mutex<Client>>,
     pub request_list: HashMap<u32, Request>,
+    pub request_body_bytes: HashMap<u32, Vec<u8>>,
     pub next_request_id: u32,
     pub environment_variables: HashMap<String, String>,
 }
@@ -22,6 +23,7 @@ impl AppState {
             table: ResourceTable::new(),
             client: Arc::new(Mutex::new(Client::new())),
             request_list: HashMap::new(),
+            request_body_bytes: HashMap::new(),
             next_request_id: 0,
             environment_variables: env_vars.unwrap_or_default(),
         }

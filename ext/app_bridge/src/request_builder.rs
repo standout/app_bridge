@@ -14,7 +14,7 @@ use wasmtime::component::Resource;
 // ============================================================================
 
 macro_rules! impl_host_request_builder {
-    ($v:ident) => {
+    ($v:ident, $has_body_bytes:ident) => {
         impl $v::standout::app::http::HostRequestBuilder for AppState {
             fn new(&mut self) -> Resource<$v::standout::app::http::RequestBuilder> {
                 let id = self.next_request_id;
@@ -34,6 +34,9 @@ macro_rules! impl_host_request_builder {
                     let new_id = self.next_request_id;
                     self.next_request_id += 1;
                     self.request_list.insert(new_id, request);
+                    if let Some(bytes) = self.request_body_bytes.get(&id).cloned() {
+                        self.request_body_bytes.insert(new_id, bytes);
+                    }
                     Resource::new_own(new_id)
                 } else {
                     Resource::new_own(id)
@@ -51,6 +54,9 @@ macro_rules! impl_host_request_builder {
                     let new_id = self.next_request_id;
                     self.next_request_id += 1;
                     self.request_list.insert(new_id, request);
+                    if let Some(bytes) = self.request_body_bytes.get(&id).cloned() {
+                        self.request_body_bytes.insert(new_id, bytes);
+                    }
                     Resource::new_own(new_id)
                 } else {
                     Resource::new_own(id)
@@ -69,6 +75,9 @@ macro_rules! impl_host_request_builder {
                 let new_id = self.next_request_id;
                 self.next_request_id += 1;
                 self.request_list.insert(new_id, request);
+                if let Some(bytes) = self.request_body_bytes.get(&id).cloned() {
+                    self.request_body_bytes.insert(new_id, bytes);
+                }
                 Resource::new_own(new_id)
             }
 
@@ -83,6 +92,9 @@ macro_rules! impl_host_request_builder {
                 let new_id = self.next_request_id;
                 self.next_request_id += 1;
                 self.request_list.insert(new_id, request);
+                if let Some(bytes) = self.request_body_bytes.get(&id).cloned() {
+                    self.request_body_bytes.insert(new_id, bytes);
+                }
                 Resource::new_own(new_id)
             }
 
@@ -97,6 +109,7 @@ macro_rules! impl_host_request_builder {
                 let new_id = self.next_request_id;
                 self.next_request_id += 1;
                 self.request_list.insert(new_id, request);
+                self.request_body_bytes.remove(&new_id);
                 Resource::new_own(new_id)
             }
 
@@ -106,9 +119,12 @@ macro_rules! impl_host_request_builder {
             ) -> Result<$v::standout::app::http::Response, $v::standout::app::http::RequestError> {
                 let id = self_.rep();
                 match self.request_list.get(&id).cloned() {
-                    Some(request) => send_request(&self.client, &request)
-                        .map(Into::into)
-                        .map_err(Into::into),
+                    Some(request) => {
+                        let body_bytes = self.request_body_bytes.get(&id).map(|b| b.as_slice());
+                        send_request(&self.client, &request, body_bytes)
+                            .map(Into::into)
+                            .map_err(Into::into)
+                    }
                     None => Err($v::standout::app::http::RequestError::Other(
                         "Request not found".to_string(),
                     )),
@@ -120,6 +136,7 @@ macro_rules! impl_host_request_builder {
                 rep: Resource<$v::standout::app::http::RequestBuilder>,
             ) -> wasmtime::Result<()> {
                 self.request_list.remove(&rep.rep());
+                self.request_body_bytes.remove(&rep.rep());
                 Ok(())
             }
 
@@ -133,9 +150,32 @@ macro_rules! impl_host_request_builder {
                     .unwrap_or_default()
                     .into()
             }
+
+            impl_host_request_builder_body_bytes!($v, $has_body_bytes);
         }
     };
 }
+
+macro_rules! impl_host_request_builder_body_bytes {
+    ($v:ident, yes) => {
+        fn body_bytes(
+            &mut self,
+            self_: Resource<$v::standout::app::http::RequestBuilder>,
+            body: Vec<u8>,
+        ) -> Resource<$v::standout::app::http::RequestBuilder> {
+            let id = self_.rep();
+            let mut request = self.request_list.get(&id).cloned().unwrap_or_default();
+            request.body.clear();
+            let new_id = self.next_request_id;
+            self.next_request_id += 1;
+            self.request_list.insert(new_id, request);
+            self.request_body_bytes.insert(new_id, body);
+            Resource::new_own(new_id)
+        }
+    };
+    ($v:ident, no) => {};
+}
+
 
 // ============================================================================
 // Macro to implement HTTP type conversions for a version
@@ -210,9 +250,9 @@ macro_rules! impl_http_type_conversions {
 //   impl_http_type_conversions!(v5);
 // ============================================================================
 
-impl_host_request_builder!(v3);
-impl_host_request_builder!(v4);
-impl_host_request_builder!(v4_1);
+impl_host_request_builder!(v3, no);
+impl_host_request_builder!(v4, no);
+impl_host_request_builder!(v4_1, yes);
 
 impl_http_type_conversions!(v3);
 // Note: v4 doesn't need conversions since we use v4 types as the canonical internal types
@@ -225,6 +265,7 @@ impl_http_type_conversions!(v4_1);
 fn send_request(
     client: &std::sync::Arc<std::sync::Mutex<reqwest::blocking::Client>>,
     request: &Request,
+    body_bytes: Option<&[u8]>,
 ) -> Result<Response, RequestError> {
     let client = client.lock().unwrap();
     let mut builder = client.request(request.method.clone().into(), &request.url);
@@ -232,7 +273,11 @@ fn send_request(
     for (key, value) in &request.headers {
         builder = builder.header(key, value);
     }
-    builder = builder.body(request.body.clone());
+    builder = if let Some(bytes) = body_bytes {
+        builder.body(bytes.to_vec())
+    } else {
+        builder.body(request.body.clone())
+    };
 
     match builder.send() {
         Ok(resp) => {
@@ -323,7 +368,7 @@ impl std::fmt::Display for Method {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use httpmock::{Method::GET, MockServer};
+    use httpmock::{Method::GET, Method::POST, MockServer};
 
     #[test]
     fn sends_request_with_default_user_agent() {
@@ -345,6 +390,32 @@ mod tests {
         let builder = app_state.new();
         let builder = app_state.method(builder, Method::Get);
         let builder = app_state.url(builder, url);
+
+        let response = app_state.send(builder).expect("Request failed");
+
+        assert_eq!(response.status, 200);
+        mock.assert();
+    }
+
+    #[test]
+    fn sends_binary_body_when_bytes_present() {
+        use v4_1::standout::app::http::HostRequestBuilder;
+
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(POST)
+                .path("/upload")
+                .body("raw-bytes");
+            then.status(200);
+        });
+        let url = format!("{}/upload", server.base_url());
+
+        let mut app_state = AppState::default();
+        let builder = app_state.new();
+        let builder = app_state.method(builder, v4_1::standout::app::http::Method::Post);
+        let builder = app_state.url(builder, url);
+        let builder = app_state.body(builder, "string-body".to_string());
+        let builder = app_state.body_bytes(builder, b"raw-bytes".to_vec());
 
         let response = app_state.send(builder).expect("Request failed");
 
