@@ -1,5 +1,5 @@
 use crate::app_state::AppState;
-use crate::component::{v3, v4};
+use crate::component::{v3, v4, v4_1};
 use crate::component::v4::standout::app::http::{Method, Request, RequestError, Response};
 use reqwest::Method as ReqwestMethod;
 use std::result::Result::Ok;
@@ -212,9 +212,11 @@ macro_rules! impl_http_type_conversions {
 
 impl_host_request_builder!(v3);
 impl_host_request_builder!(v4);
+impl_host_request_builder!(v4_1);
 
 impl_http_type_conversions!(v3);
 // Note: v4 doesn't need conversions since we use v4 types as the canonical internal types
+impl_http_type_conversions!(v4_1);
 
 // ============================================================================
 // Shared request sending logic

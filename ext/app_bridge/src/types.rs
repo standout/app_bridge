@@ -14,6 +14,15 @@ pub struct AppError {
     pub message: String,
 }
 
+impl AppError {
+    pub fn new(code: ErrorCode, message: impl Into<String>) -> Self {
+        Self {
+            code,
+            message: message.into(),
+        }
+    }
+}
+
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}: {}", self.code, self.message)
@@ -22,7 +31,7 @@ impl fmt::Display for AppError {
 
 impl std::error::Error for AppError {}
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum ErrorCode {
     Unauthenticated,
     Forbidden,
@@ -34,8 +43,15 @@ pub enum ErrorCode {
     InternalError,
     MalformedResponse,
     Other,
+    RetryWithReference(ReferenceObject),
     CompleteWorkflow,
     CompleteParent,
+}
+
+#[derive(Debug, Clone)]
+pub struct ReferenceObject {
+    pub reference: String,
+    pub status: String,
 }
 
 #[derive(Debug, Clone)]
@@ -58,6 +74,7 @@ pub struct ActionContext {
     pub action_id: String,
     pub connection: Connection,
     pub serialized_input: String,
+    pub reference_object: Option<ReferenceObject>,
 }
 
 #[derive(Debug, Clone)]
