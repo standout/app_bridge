@@ -103,6 +103,39 @@ AppBridge.file_uploader = ->(file_data) {
 
 The gem automatically replaces file data with the return value (in this example blob IDs) before returning the action response.
 
+### Multipart Form Data
+
+For `multipart/form-data`, you must build the body manually and set the `Content-Type` header with a boundary. In `standout:app@4.1.0` you can send raw bytes via `body-bytes`; earlier versions only support a string body.
+
+#### In your WASM connector (Rust):
+
+```rust
+let boundary = "----app-bridge-boundary";
+
+let mut body = Vec::new();
+body.extend_from_slice(format!(
+    "--{b}\r\n\
+Content-Disposition: form-data; name=\"metadata\"\r\n\r\n\
+{metadata}\r\n\
+--{b}\r\n\
+Content-Disposition: form-data; name=\"file\"; filename=\"invoice.pdf\"\r\n\
+Content-Type: application/pdf\r\n\r\n",
+    b = boundary,
+    metadata = metadata_json,
+).as_bytes());
+body.extend_from_slice(&file_bytes);
+body.extend_from_slice(format!("\r\n--{b}--\r\n", b = boundary).as_bytes());
+
+let response = RequestBuilder::new()
+    .method(Method::Post)
+    .url(upload_url)
+    .header("Content-Type", format!("multipart/form-data; boundary={}", boundary))
+    .body_bytes(body)
+    .send()?;
+```
+
+If you are targeting `standout:app@4.0.0` or earlier, you can only send a string body. That means multipart uploads must be base64-encoded and the receiving API must support `Content-Transfer-Encoding: base64`.
+
 ## Retry With Reference
 
 `standout:app@4.1.0` introduces a structured retry error for actions. Connectors can return a retry error with a reference and status, and the platform can pass that back on subsequent retries via `action-context.reference-object`.
