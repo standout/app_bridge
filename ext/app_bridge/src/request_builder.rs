@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::component::{v3, v4, v4_1};
-use crate::component::v4::standout::app::http::{Method, Request, RequestError, Response};
+use crate::component::v4::standout::app::http::{Method, Request, RequestError};
 use reqwest::Method as ReqwestMethod;
 use std::result::Result::Ok;
 use wasmtime::component::Resource;
@@ -212,16 +212,6 @@ macro_rules! impl_http_type_conversions {
             }
         }
 
-        impl From<Response> for $v::standout::app::http::Response {
-            fn from(r: Response) -> Self {
-                Self {
-                    status: r.status,
-                    headers: r.headers,
-                    body: r.body,
-                }
-            }
-        }
-
         impl From<Request> for $v::standout::app::http::Request {
             fn from(r: Request) -> Self {
                 Self {
@@ -243,6 +233,32 @@ macro_rules! impl_http_type_conversions {
     };
 }
 
+macro_rules! impl_http_response_conversion {
+    ($v:ident, with_bytes) => {
+        impl From<Response> for $v::standout::app::http::Response {
+            fn from(r: Response) -> Self {
+                Self {
+                    status: r.status,
+                    headers: r.headers,
+                    body: r.body,
+                    body_bytes: r.body_bytes,
+                }
+            }
+        }
+    };
+    ($v:ident, no_bytes) => {
+        impl From<Response> for $v::standout::app::http::Response {
+            fn from(r: Response) -> Self {
+                Self {
+                    status: r.status,
+                    headers: r.headers,
+                    body: r.body,
+                }
+            }
+        }
+    };
+}
+
 // ============================================================================
 // Generate implementations for all supported versions
 // When adding v5, just add:
@@ -255,12 +271,22 @@ impl_host_request_builder!(v4, no);
 impl_host_request_builder!(v4_1, yes);
 
 impl_http_type_conversions!(v3);
-// Note: v4 doesn't need conversions since we use v4 types as the canonical internal types
 impl_http_type_conversions!(v4_1);
+impl_http_response_conversion!(v3, no_bytes);
+impl_http_response_conversion!(v4, no_bytes);
+impl_http_response_conversion!(v4_1, with_bytes);
 
 // ============================================================================
 // Shared request sending logic
 // ============================================================================
+
+#[derive(Debug, Clone)]
+struct Response {
+    status: u16,
+    headers: Vec<(String, String)>,
+    body: String,
+    body_bytes: Option<Vec<u8>>,
+}
 
 fn send_request(
     client: &std::sync::Arc<std::sync::Mutex<reqwest::blocking::Client>>,
@@ -281,6 +307,7 @@ fn send_request(
 
     match builder.send() {
         Ok(resp) => {
+            let status = resp.status().as_u16();
             let headers = resp
                 .headers()
                 .iter()
@@ -292,10 +319,14 @@ fn send_request(
                 })
                 .collect();
 
+            let bytes = resp.bytes().unwrap_or_default().to_vec();
+            let body = String::from_utf8(bytes.clone()).unwrap_or_default();
+
             Ok(Response {
-                status: resp.status().as_u16(),
+                status,
                 headers,
-                body: resp.text().unwrap_or_default(),
+                body,
+                body_bytes: Some(bytes),
             })
         }
         Err(error) => Err(RequestError::Other(format!(
@@ -343,6 +374,7 @@ impl Default for Response {
             status: 0,
             headers: Vec::new(),
             body: String::new(),
+            body_bytes: None,
         }
     }
 }
@@ -420,6 +452,32 @@ mod tests {
         let response = app_state.send(builder).expect("Request failed");
 
         assert_eq!(response.status, 200);
+        mock.assert();
+    }
+
+    #[test]
+    fn returns_binary_response_body_bytes() {
+        use v4_1::standout::app::http::HostRequestBuilder;
+
+        let server = MockServer::start();
+        let body = b"%PDF-1.3".to_vec();
+        let mock = server.mock(|when, then| {
+            when.method(POST).path("/download");
+            then.status(200)
+                .header("Content-Type", "application/pdf")
+                .body(body.clone());
+        });
+        let url = format!("{}/download", server.base_url());
+
+        let mut app_state = AppState::default();
+        let builder = app_state.new();
+        let builder = app_state.method(builder, v4_1::standout::app::http::Method::Post);
+        let builder = app_state.url(builder, url);
+
+        let response = app_state.send(builder).expect("Request failed");
+
+        assert_eq!(response.status, 200);
+        assert_eq!(response.body_bytes, Some(body));
         mock.assert();
     }
 }

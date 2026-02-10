@@ -243,6 +243,8 @@ interface http {
     status: u16,
     headers: headers,
     body: string,
+    /// Raw response payload for binary responses.
+    body-bytes: option<list<u8>>,
   }
 
   record request {
