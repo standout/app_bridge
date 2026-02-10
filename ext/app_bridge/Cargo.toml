@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 magnus = { version = "0.7.1" }
 wasmtime = "33.0.2"
 wasmtime-wasi = "33.0.2"
-reqwest = { version = "0.12", features = ["blocking", "json", "native-tls-vendored"] }
+reqwest = { version = "0.13", features = ["blocking", "json", "native-tls-vendored"] }
 base64 = "0.22"
 infer = "0.16"
 serde = { version = "1.0", features = ["derive"] }
