@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::result::Result::Ok;
-use wasmtime::component::{Component, Linker};
+use wasmtime::component::{Component, HasSelf, Linker};
 use wasmtime::{Engine, Result, Store};
-use wasmtime_wasi::p2::WasiCtxBuilder;
+use wasmtime_wasi::WasiCtxBuilder;
 
 use crate::app_state::AppState;
 use crate::types::{
@@ -315,18 +315,18 @@ pub fn build_linker(engine: &Engine) -> Result<Linker<AppState>> {
 
     // ---- Version-specific interfaces ----
     // v3: http + environment
-    v3::standout::app::http::add_to_linker(&mut linker, |s| s)?;
-    v3::standout::app::environment::add_to_linker(&mut linker, |s| s)?;
+    v3::standout::app::http::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
+    v3::standout::app::environment::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
 
     // v4: http + environment + file
-    v4::standout::app::http::add_to_linker(&mut linker, |s| s)?;
-    v4::standout::app::environment::add_to_linker(&mut linker, |s| s)?;
-    v4::standout::app::file::add_to_linker(&mut linker, |s| s)?;
+    v4::standout::app::http::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
+    v4::standout::app::environment::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
+    v4::standout::app::file::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
 
     // v4.1: http + environment + file
-    v4_1::standout::app::http::add_to_linker(&mut linker, |s| s)?;
-    v4_1::standout::app::environment::add_to_linker(&mut linker, |s| s)?;
-    v4_1::standout::app::file::add_to_linker(&mut linker, |s| s)?;
+    v4_1::standout::app::http::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
+    v4_1::standout::app::environment::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
+    v4_1::standout::app::file::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
 
     // Add new versions here:
     // v5::standout::app::http::add_to_linker(&mut linker, |s| s)?;
