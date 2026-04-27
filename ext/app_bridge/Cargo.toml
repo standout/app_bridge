@@ -17,7 +17,7 @@ wasmtime-wasi = "43.0.1"
 wasmtime-wasi-io = "43.0.1"
 reqwest = { version = "0.12", features = ["blocking", "json", "native-tls-vendored"] }
 base64 = "0.22"
-infer = "0.16"
+infer = "0.19"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
