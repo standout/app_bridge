@@ -21,3 +21,4 @@ spec/fixtures/components/*.wasm
 
 .ruby-version
 .DS_Store
+/vendor/bundle/

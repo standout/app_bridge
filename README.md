@@ -305,6 +305,12 @@ impl v5::standout::app::new_feature::Host for AppState {
 - **Gradual migration**: Update connectors to new WIT versions at your own pace
 - **Type safety**: Each version's types are converted to the latest version internally
 
+- **Connections interface** (WIT 5.0.0+): Embeds `connection-config` JSON in WASM; platform extracts it at version upload
+
+## Connection configuration (WIT 5)
+
+Connectors embed `connection-config.json` via `include_str!` and export it through the `connections` interface. Integrationer reads it **once when the WASM version is saved**, validates against [connection-config-schema.json](ext/app_bridge/docs/connection-config-schema.json), and stores it on the version. Runtime connection flows use the stored JSON, not a live WASM call.
+
 ## Development
 
 To contribute or modify this gem, ensure you have the following dependencies installed:
