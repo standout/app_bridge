@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 require_relative "app_bridge/version"
+require_relative "app_bridge/connection_config_validator"
 require_relative "app_bridge/app"
 require_relative "app_bridge/file_processor"
 
 # Communication layer for Standout integration apps using WebAssembly components.
 module AppBridge
   class Error < StandardError; end
+  class ConnectionConfigError < Error; end
   class TimeoutError < Error; end
   class TooManyEventsError < Error; end
   class StoreTooLargeError < Error; end

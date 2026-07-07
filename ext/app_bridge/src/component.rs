@@ -42,6 +42,13 @@ pub mod v4_1 {
     });
 }
 
+pub mod v5 {
+    wasmtime::component::bindgen!({
+        path: "./wit/v5",
+        world: "bridge",
+    });
+}
+
 // ============================================================================
 // Version conversion macro - generates From impls for a version module
 // ============================================================================
@@ -174,7 +181,25 @@ impl From<v4_1::standout::app::types::ReferenceObject> for ReferenceObject {
     }
 }
 
+impl From<v5::standout::app::types::ReferenceObject> for ReferenceObject {
+    fn from(r: v5::standout::app::types::ReferenceObject) -> Self {
+        Self {
+            reference: r.reference,
+            status: r.status,
+        }
+    }
+}
+
 impl From<&ReferenceObject> for v4_1::standout::app::types::ReferenceObject {
+    fn from(r: &ReferenceObject) -> Self {
+        Self {
+            reference: r.reference.clone(),
+            status: r.status.clone(),
+        }
+    }
+}
+
+impl From<&ReferenceObject> for v5::standout::app::types::ReferenceObject {
     fn from(r: &ReferenceObject) -> Self {
         Self {
             reference: r.reference.clone(),
@@ -199,6 +224,13 @@ impl_error_code_conversion!(
 impl_conversions!(v4_1);
 impl_app_error_conversion!(v4_1);
 impl_action_context_conversion_retry!(v4_1);
+impl_error_code_conversion!(
+    v5,
+    V::RetryWithReference(r) => Self::RetryWithReference(r.into()),
+);
+impl_conversions!(v5);
+impl_app_error_conversion!(v5);
+impl_action_context_conversion_retry!(v5);
 
 // ============================================================================
 // BridgeWrapper - unified interface for all component versions
@@ -210,6 +242,7 @@ pub enum BridgeWrapper {
     V3(v3::Bridge),
     V4(v4::Bridge),
     V4_1(v4_1::Bridge),
+    V5(v5::Bridge),
 }
 
 impl BridgeWrapper {
@@ -219,7 +252,12 @@ impl BridgeWrapper {
             BridgeWrapper::V3(_) => "3.0.0",
             BridgeWrapper::V4(_) => "4.0.0",
             BridgeWrapper::V4_1(_) => "4.1.0",
+            BridgeWrapper::V5(_) => "5.0.0",
         }
+    }
+
+    pub fn connections_supported(&self) -> bool {
+        matches!(self, BridgeWrapper::V5(_))
     }
 }
 
@@ -242,6 +280,10 @@ macro_rules! bridge_method {
                     let r = b.$interface().$method(store)?;
                     Ok(r.map_err(Into::into))
                 }
+                BridgeWrapper::V5(b) => {
+                    let r = b.$interface().$method(store)?;
+                    Ok(r.map_err(Into::into))
+                }
             }
         }
     };
@@ -258,6 +300,10 @@ macro_rules! bridge_method {
                     Ok(r.map(Into::into).map_err(Into::into))
                 }
                 BridgeWrapper::V4_1(b) => {
+                    let r = b.$interface().$method(store, &ctx.into())?;
+                    Ok(r.map(Into::into).map_err(Into::into))
+                }
+                BridgeWrapper::V5(b) => {
                     let r = b.$interface().$method(store, &ctx.into())?;
                     Ok(r.map(Into::into).map_err(Into::into))
                 }
@@ -280,6 +326,10 @@ macro_rules! bridge_method {
                     let r = b.$interface().$method(store, &ctx.into())?;
                     Ok(r.map(Into::into).map_err(Into::into))
                 }
+                BridgeWrapper::V5(b) => {
+                    let r = b.$interface().$method(store, &ctx.into())?;
+                    Ok(r.map(Into::into).map_err(Into::into))
+                }
             }
         }
     };
@@ -297,6 +347,18 @@ impl BridgeWrapper {
     bridge_method!(fn call_action_input_schema(&ActionContext) -> Result<String> via standout_app_actions . call_input_schema);
     bridge_method!(fn call_action_output_schema(&ActionContext) -> Result<String> via standout_app_actions . call_output_schema);
     bridge_method!(fn call_execute(&ActionContext) -> Result<ActionResponse> via standout_app_actions . call_execute);
+
+    pub fn call_connection_config(
+        &self,
+        store: &mut Store<AppState>,
+    ) -> Result<String> {
+        match self {
+            BridgeWrapper::V5(b) => {
+                b.standout_app_connections().call_connection_config(store)
+            }
+            _ => unreachable!("call_connection_config requires connections_supported"),
+        }
+    }
 }
 
 // ============================================================================
@@ -328,11 +390,10 @@ pub fn build_linker(engine: &Engine) -> Result<Linker<AppState>> {
     v4_1::standout::app::environment::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
     v4_1::standout::app::file::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
 
-    // Add new versions here:
-    // v5::standout::app::http::add_to_linker(&mut linker, |s| s)?;
-    // v5::standout::app::environment::add_to_linker(&mut linker, |s| s)?;
-    // v5::standout::app::file::add_to_linker(&mut linker, |s| s)?;
-    // v5::standout::app::new_feature::add_to_linker(&mut linker, |s| s)?;
+    // v5: http + environment + file
+    v5::standout::app::http::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
+    v5::standout::app::environment::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
+    v5::standout::app::file::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
 
     Ok(linker)
 }
@@ -360,7 +421,12 @@ pub fn app(
     let component = Component::from_file(&engine, &file_path)?;
 
     // Try versions newest-first. When adding vN, insert at the top.
-    // v4.1 (current - has file interface)
+    // v5 (current - has connections interface)
+    if let Ok(instance) = v5::Bridge::instantiate(&mut *store, &component, &linker) {
+        return Ok(BridgeWrapper::V5(instance));
+    }
+
+    // v4.1 (has file interface + retry-with-reference)
     if let Ok(instance) = v4_1::Bridge::instantiate(&mut *store, &component, &linker) {
         return Ok(BridgeWrapper::V4_1(instance));
     }
@@ -376,6 +442,6 @@ pub fn app(
     }
 
     Err(wasmtime::Error::msg(
-        "Failed to instantiate component: no compatible WIT version found (tried v4.1, v4, v3)",
+        "Failed to instantiate component: no compatible WIT version found (tried v5, v4.1, v4, v3)",
     ))
 }

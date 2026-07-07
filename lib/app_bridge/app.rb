@@ -39,6 +39,16 @@ module AppBridge
       30 # seconds
     end
 
+    def connections_supported?
+      _rust_connections_supported?
+    end
+
+    def connection_config
+      json = _rust_connection_config
+      ConnectionConfigValidator.validate!(json)
+      json
+    end
+
     private
 
     def validate_number_of_events!(events)

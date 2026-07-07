@@ -40,6 +40,50 @@ impl MutRApp {
         }
     }
 
+    pub fn connections_supported(&self) -> Result<bool, Error> {
+        let binding = self.0.borrow();
+        let instance = binding.instance.borrow();
+
+        if let Some(instance) = &*instance {
+            Ok(instance.connections_supported())
+        } else {
+            Err(Error::new(
+                magnus::exception::runtime_error(),
+                "App not initialized",
+            ))
+        }
+    }
+
+    pub fn connection_config(&self) -> Result<String, Error> {
+        let binding = self.0.borrow();
+        let mut instance = binding.instance.borrow_mut();
+        let mut store = binding.store.borrow_mut();
+
+        if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
+            if !instance.connections_supported() {
+                return Err(AppError {
+                    code: ErrorCode::Unsupported,
+                    message: "connections interface not supported by this component version"
+                        .to_string(),
+                }
+                .into());
+            }
+
+            instance.call_connection_config(store).map_err(|err| {
+                Error::new(
+                    magnus::exception::runtime_error(),
+                    format!("Failed to read connection-config: {err}"),
+                )
+            })
+        } else {
+            Err(AppError {
+                code: ErrorCode::InternalError,
+                message: "App instance couldn't be initialized".to_string(),
+            }
+            .into())
+        }
+    }
+
     pub fn initialize(&self, component_path: String, env_vars: HashMap<String, String>) -> Result<(), Error> {
         let mut this = self.0.borrow_mut();
         let engine = build_engine();

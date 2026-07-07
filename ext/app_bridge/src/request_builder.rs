@@ -1,5 +1,5 @@
 use crate::app_state::AppState;
-use crate::component::{v3, v4, v4_1};
+use crate::component::{v3, v4, v4_1, v5};
 use crate::component::v4::standout::app::http::{Method, Request, RequestError};
 use reqwest::Method as ReqwestMethod;
 use std::result::Result::Ok;
@@ -269,12 +269,15 @@ macro_rules! impl_http_response_conversion {
 impl_host_request_builder!(v3, no);
 impl_host_request_builder!(v4, no);
 impl_host_request_builder!(v4_1, yes);
+impl_host_request_builder!(v5, yes);
 
 impl_http_type_conversions!(v3);
 impl_http_type_conversions!(v4_1);
+impl_http_type_conversions!(v5);
 impl_http_response_conversion!(v3, no_bytes);
 impl_http_response_conversion!(v4, no_bytes);
 impl_http_response_conversion!(v4_1, with_bytes);
+impl_http_response_conversion!(v5, with_bytes);
 
 // ============================================================================
 // Shared request sending logic

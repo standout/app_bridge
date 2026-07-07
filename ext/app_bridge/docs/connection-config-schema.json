@@ -1,0 +1,500 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:standout:schemas:connection-config:2",
+  "title": "Connection Config",
+  "description": "Declares how a connector authenticates and what runtime data the platform passes to actions/triggers. OAuth uses RFC 8414 authorization_server metadata and RFC 9728 protected_resource at the top level, with Standout-specific oauth_client credentials and platform hooks alongside. Generated at connector build time (see base-connector-tools). The platform does not fetch well-known metadata at runtime.",
+  "type": "object",
+  "required": ["strategies", "default_strategy", "runtime"],
+  "properties": {
+    "protected_resource": {
+      "$ref": "#/$defs/protected_resource",
+      "description": "RFC 9728 protected resource metadata for the API. runtime.base_url defaults to resource when omitted."
+    },
+    "strategies": {
+      "type": "array",
+      "minItems": 0,
+      "description": "Connection strategies. An empty array disables WASM-driven connections.",
+      "items": { "$ref": "#/$defs/strategy" }
+    },
+    "default_strategy": {
+      "type": "string",
+      "description": "ID of the strategy used when connecting"
+    },
+    "connection_schema": {
+      "type": "object",
+      "description": "JSON Schema for user input before connection (shared fallback). Field values listed in strategy storage are available as {{field}} in templates."
+    },
+    "runtime": {
+      "$ref": "#/$defs/runtime",
+      "description": "Default runtime payload merged with strategy.runtime. Headers and optional base_url override."
+    },
+    "post_connect": { "$ref": "#/$defs/post_connect_hook" }
+  },
+  "$defs": {
+    "templated_value": {
+      "description": "Literal string or template resolved by the platform. Use {{field}} for connection storage keys and {{env:NAME}} for app environment variables.",
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "required": ["template"],
+          "additionalProperties": false,
+          "properties": {
+            "template": {
+              "type": "string",
+              "description": "e.g. Bearer {{access_token}}, {{username}}:{{password}}, {{env:CLIENT_ID}}"
+            },
+            "as": {
+              "enum": ["basic_authorization"],
+              "description": "Interpolate template then encode as HTTP Basic (Basic + Base64)"
+            }
+          }
+        }
+      ]
+    },
+    "templated_uri": {
+      "description": "Static URI or template that resolves to a URI at runtime",
+      "oneOf": [
+        { "type": "string", "format": "uri" },
+        {
+          "type": "object",
+          "required": ["template"],
+          "additionalProperties": false,
+          "properties": {
+            "template": {
+              "type": "string",
+              "description": "e.g. https://api.example.com/v1, https://{{subdomain}}.example.com/api, {{env:API_BASE_URL}}"
+            }
+          }
+        }
+      ]
+    },
+    "protected_resource": {
+      "type": "object",
+      "description": "RFC 9728 OAuth Protected Resource Metadata",
+      "required": ["resource", "authorization_servers"],
+      "properties": {
+        "resource": {
+          "type": "string",
+          "format": "uri",
+          "description": "API resource identifier (typically the API base URL)"
+        },
+        "authorization_servers": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "format": "uri" },
+          "description": "Issuer URLs of authorization servers that can issue tokens for this resource"
+        },
+        "scopes_supported": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Scopes supported when accessing this resource"
+        },
+        "bearer_methods_supported": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "e.g. header"
+        }
+      }
+    },
+    "authorization_server": {
+      "type": "object",
+      "description": "RFC 8414 OAuth Authorization Server Metadata (server capabilities and endpoints)",
+      "required": ["issuer", "token_endpoint"],
+      "properties": {
+        "issuer": {
+          "type": "string",
+          "format": "uri",
+          "description": "Authorization server issuer identifier"
+        },
+        "authorization_endpoint": {
+          "type": "string",
+          "format": "uri",
+          "description": "OAuth authorization endpoint"
+        },
+        "token_endpoint": {
+          "type": "string",
+          "format": "uri",
+          "description": "OAuth token endpoint"
+        },
+        "response_types_supported": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "e.g. code"
+        },
+        "grant_types_supported": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "e.g. authorization_code, refresh_token, client_credentials"
+        },
+        "scopes_supported": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Scopes the authorization server supports"
+        },
+        "code_challenge_methods_supported": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "PKCE methods supported, e.g. S256"
+        },
+        "token_endpoint_auth_methods_supported": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "e.g. client_secret_basic, client_secret_post"
+        },
+        "revocation_endpoint": {
+          "type": "string",
+          "format": "uri"
+        },
+        "introspection_endpoint": {
+          "type": "string",
+          "format": "uri"
+        },
+        "registration_endpoint": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["grant_types_supported"],
+            "properties": {
+              "grant_types_supported": {
+                "type": "array",
+                "contains": { "const": "client_credentials" },
+                "not": { "contains": { "const": "authorization_code" } }
+              }
+            }
+          },
+          "then": {},
+          "else": {
+            "required": ["authorization_endpoint"]
+          }
+        }
+      ]
+    },
+    "oauth_client": {
+      "type": "object",
+      "description": "Standout client registration and OAuth request choices (not part of RFC 8414)",
+      "required": ["client_id", "client_secret"],
+      "properties": {
+        "grant_type": {
+          "enum": ["authorization_code", "client_credentials"],
+          "default": "authorization_code",
+          "description": "OAuth grant used when connecting"
+        },
+        "response_type": {
+          "type": "string",
+          "default": "code",
+          "description": "Override response_type; defaults to code or first response_types_supported"
+        },
+        "scopes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Fixed scope list when scopes_from_field is not used"
+        },
+        "scopes_from_field": {
+          "type": "string",
+          "description": "Connection form field containing selected scopes (array of strings)"
+        },
+        "scopes_always_include": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Scopes always appended to scopes_from_field"
+        },
+        "client_id": {
+          "$ref": "#/$defs/templated_value",
+          "description": "OAuth client_id, e.g. {{env:OAUTH_CLIENT_ID}}"
+        },
+        "client_secret": {
+          "$ref": "#/$defs/templated_value",
+          "description": "OAuth client_secret, e.g. {{env:OAUTH_CLIENT_SECRET}}"
+        },
+        "authorization_parameters": {
+          "type": "object",
+          "description": "Extra query parameters appended to the authorization request",
+          "additionalProperties": { "type": "string" }
+        },
+        "authorization_parameters_from_form": {
+          "type": "object",
+          "description": "Map connection form field values to authorization query parameters",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        },
+        "token_request_method": {
+          "enum": ["POST", "GET"],
+          "default": "POST"
+        },
+        "token_request_parameters": {
+          "type": "object",
+          "description": "Extra parameters sent to the token endpoint",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "strategy": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": {
+          "type": "string",
+          "description": "Label shown when the user picks authentication type before connecting"
+        },
+        "type": {
+          "enum": ["oauth2", "basic_auth", "api_key", "session", "none", "custom"]
+        },
+        "authorization_server": {
+          "$ref": "#/$defs/authorization_server",
+          "description": "RFC 8414 metadata (required when type is oauth2)"
+        },
+        "oauth_client": {
+          "$ref": "#/$defs/oauth_client",
+          "description": "Client credentials and request options (required when type is oauth2)"
+        },
+        "session": {
+          "$ref": "#/$defs/session",
+          "description": "Session login configuration (required when type is session)"
+        },
+        "token_response": {
+          "$ref": "#/$defs/token_response",
+          "description": "Maps token response fields to storage keys. Optional for oauth2 — platform defaults to standard RFC 6749 field names."
+        },
+        "refresh": {
+          "$ref": "#/$defs/refresh",
+          "description": "Token refresh policy. Optional for oauth2 — platform defaults to enabled for authorization_code."
+        },
+        "storage": {
+          "description": "Fields persisted in connection storage. Array of keys or object with optional display titles. Available as {{field}} in runtime templates.",
+          "oneOf": [
+            {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            },
+            {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": { "$ref": "#/$defs/storage_field" }
+            }
+          ]
+        },
+        "connection_schema": {
+          "type": "object",
+          "description": "Strategy-specific pre-connection form schema (JSON Schema)"
+        },
+        "form_persist": {
+          "type": "object",
+          "description": "Map pre-connection form fields to account storage keys after connect",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              {
+                "type": "object",
+                "required": ["as"],
+                "properties": {
+                  "as": { "type": "string" },
+                  "join": {
+                    "type": "string",
+                    "description": "Join array values before persisting, e.g. a space for OAuth scopes"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "runtime": {
+          "$ref": "#/$defs/runtime",
+          "description": "Strategy-specific runtime override"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "oauth2" } },
+            "required": ["type"]
+          },
+          "then": { "required": ["authorization_server", "oauth_client"] }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "session" } },
+            "required": ["type"]
+          },
+          "then": { "required": ["session", "token_response"] }
+        }
+      ]
+    },
+    "session": {
+      "type": "object",
+      "required": ["token_endpoint"],
+      "additionalProperties": false,
+      "description": "HTTP request that creates an API session",
+      "properties": {
+        "token_endpoint": {
+          "$ref": "#/$defs/templated_uri",
+          "description": "Login URL that returns a session token"
+        },
+        "method": {
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+          "default": "POST"
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/templated_value" }
+        },
+        "body": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/templated_value" }
+        },
+        "body_format": {
+          "enum": ["json", "form"],
+          "default": "json"
+        },
+        "token_source": {
+          "enum": ["body", "header"],
+          "default": "body",
+          "description": "Whether token_response reads from JSON response body or a response header"
+        },
+        "token_header": {
+          "type": "string",
+          "description": "Response header name when token_source is header"
+        },
+        "success_status": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "default": [200]
+        }
+      }
+    },
+    "token_response": {
+      "type": "object",
+      "description": "Maps token or session response fields to connection storage keys",
+      "properties": {
+        "access_token": { "type": "string" },
+        "refresh_token": { "type": "string" },
+        "expires_at": {
+          "type": "object",
+          "properties": {
+            "from": { "type": "string" },
+            "type": { "enum": ["relative_seconds", "absolute_timestamp", "iso8601"] }
+          }
+        }
+      }
+    },
+    "refresh": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "grant_type": { "enum": ["refresh_token", "client_credentials"] },
+        "token_endpoint": {
+          "$ref": "#/$defs/templated_uri",
+          "description": "Override authorization_server.token_endpoint for refresh"
+        },
+        "expires_latency": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Seconds to reduce token validity by before refresh (oauth2 expires_latency)"
+        }
+      }
+    },
+    "storage_field": {
+      "type": "object",
+      "description": "Storage field metadata for account display and connect forms.",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Label shown for this field"
+        },
+        "description": {
+          "type": "string",
+          "description": "Help text shown on connect forms. Not persisted."
+        }
+      }
+    },
+    "post_connect_hook": {
+      "type": "object",
+      "description": "Platform-run validation after connect. Uses resolved runtime headers and base_url for the active strategy.",
+      "required": ["request"],
+      "properties": {
+        "request": {
+          "type": "object",
+          "properties": {
+            "method": {
+              "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+              "default": "GET"
+            },
+            "path": {
+              "type": "string",
+              "description": "Appended to runtime base_url, e.g. /v1/me"
+            },
+            "url": {
+              "$ref": "#/$defs/templated_uri",
+              "description": "Optional full URL override instead of base_url + path"
+            },
+            "body": {
+              "type": "object",
+              "additionalProperties": { "$ref": "#/$defs/templated_value" }
+            },
+            "body_format": {
+              "enum": ["json", "form"],
+              "default": "json"
+            }
+          },
+          "anyOf": [
+            { "required": ["path"] },
+            { "required": ["url"] }
+          ]
+        },
+        "success_status": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "default": [200]
+        },
+        "persist": {
+          "type": "object",
+          "description": "Map response values to connection storage keys",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Dot path from response context, e.g. body.account.id"
+              },
+              {
+                "type": "object",
+                "required": ["from"],
+                "additionalProperties": false,
+                "properties": {
+                  "from": { "type": "string" },
+                  "as": { "enum": ["string"] }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "description": "Runtime payload for actions/triggers. base_url defaults to protected_resource.resource when omitted.",
+      "properties": {
+        "base_url": { "$ref": "#/$defs/templated_uri" },
+        "headers": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/templated_value" }
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/templated_value" }
+        }
+      }
+    }
+  }
+}
