@@ -1,12 +1,6 @@
 # frozen_string_literal: true
 
 require "bundler/gem_tasks"
-require "rspec/core/rake_task"
-
-require "rubocop/rake_task"
-
-RuboCop::RakeTask.new
-
 require "rb_sys/extensiontask"
 
 task build: :compile
@@ -17,12 +11,21 @@ RbSys::ExtensionTask.new("app_bridge", GEMSPEC) do |ext|
   ext.lib_dir = "lib/app_bridge"
 end
 
-# Load all project specific rake tasks
-Dir.glob(File.expand_path("tasks/**/*.rake", __dir__)).each { |file| load file }
+if ENV.key?("RUBY_TARGET")
+  task default: :compile
+else
+  require "rspec/core/rake_task"
+  require "rubocop/rake_task"
 
-# Set test mode environment variable for specs
-RSpec::Core::RakeTask.new(:spec) do |_t|
-  ENV["APP_BRIDGE_TEST_MODE"] = "1"
+  RuboCop::RakeTask.new
+
+  # Load all project specific rake tasks
+  Dir.glob(File.expand_path("tasks/**/*.rake", __dir__)).each { |file| load file }
+
+  # Set test mode environment variable for specs
+  RSpec::Core::RakeTask.new(:spec) do |_t|
+    ENV["APP_BRIDGE_TEST_MODE"] = "1"
+  end
+
+  task default: %i[fixtures compile rust:test spec rubocop]
 end
-
-task default: %i[fixtures compile rust:test spec rubocop]
