@@ -9,9 +9,13 @@ gem "rake", "~> 13.3"
 
 gem "rake-compiler"
 
-gem "rspec", "~> 3.0"
-gem "rspec-benchmark"
+unless ENV["RUBY_TARGET"]
+  group :development, :test do
+    gem "rspec", "~> 3.0"
+    gem "rspec-benchmark"
 
-gem "rubocop", "~> 1.81"
+    gem "rubocop", "~> 1.81"
 
-gem "json"
+    gem "json"
+  end
+end

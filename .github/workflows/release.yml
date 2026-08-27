@@ -18,7 +18,7 @@ jobs:
           supported-ruby-platforms: |
             exclude: [arm-linux, x64-mingw32, x64-mingw-ucrt, aarch64-mingw-ucrt]
           stable-ruby-versions: |
-            only: ['3.4']
+            exclude: [head]
 
   cross-gem:
     name: Compile native gem for ${{ matrix.platform }}
@@ -33,7 +33,6 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4.9"
-          bundler-cache: true
 
       - name: Install OpenSSL dependency
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libssl-dev pkg-config
@@ -43,6 +42,7 @@ jobs:
         with:
           platform: ${{ matrix.platform }}
           ruby-versions: ${{ join(fromJSON(needs.ci-data.outputs.result).stable-ruby-versions, ',') }}
+          pre-script: export BUNDLE_WITHOUT=development:test
 
       - uses: actions/upload-artifact@v6
         with:
