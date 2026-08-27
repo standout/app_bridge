@@ -46,14 +46,27 @@ module AppBridge
     def parse_data(data)
       case data
       when Hash
-        data
+        deep_stringify_keys(data)
       when String
-        JSON.parse(data)
+        deep_stringify_keys(JSON.parse(data))
       else
         raise AppBridge::ConnectionConfigError, "connection-config must be a JSON object"
       end
     rescue JSON::ParserError => e
       raise AppBridge::ConnectionConfigError, "Invalid connection-config JSON: #{e.message}"
+    end
+
+    def deep_stringify_keys(value)
+      case value
+      when Hash
+        value.each_with_object({}) do |(key, nested), result|
+          result[key.to_s] = deep_stringify_keys(nested)
+        end
+      when Array
+        value.map { |item| deep_stringify_keys(item) }
+      else
+        value
+      end
     end
 
     def format_errors(errors)

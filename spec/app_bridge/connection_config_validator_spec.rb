@@ -114,6 +114,18 @@ RSpec.describe AppBridge::ConnectionConfigValidator do
       expect { described_class.validate!(disabled) }.not_to raise_error
     end
 
+    it "accepts symbol-keyed hashes the same as JSON strings" do
+      json = JSON.generate(valid_config.transform_keys(&:to_s))
+
+      expect { described_class.validate!(valid_config) }.not_to raise_error
+      expect { described_class.validate!(json) }.not_to raise_error
+    end
+
+    it "detects missing required keys on symbol-keyed hashes" do
+      expect { described_class.validate!(strategies: [], runtime: {}) }
+        .to raise_error(AppBridge::ConnectionConfigError, /default_strategy/)
+    end
+
     it "raises ConnectionConfigError with path details for invalid config" do
       invalid = valid_config.merge(
         strategies: [{ id: "default", type: "unknown_type" }]
