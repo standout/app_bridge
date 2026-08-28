@@ -11,7 +11,7 @@ gem "rake-compiler"
 
 unless ENV["RUBY_TARGET"]
   group :development, :test do
-    gem "rspec", "~> 3.0"
+    gem "rspec", "~> 3.13"
     gem "rspec-benchmark"
 
     gem "rubocop", "~> 1.81"
