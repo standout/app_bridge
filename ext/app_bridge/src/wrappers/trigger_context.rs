@@ -1,4 +1,5 @@
 use magnus::{prelude::*, Error, TryConvert, Value};
+use crate::error_mapping::runtime_error;
 use crate::types::TriggerContext;
 use super::connection::RConnection;
 
@@ -11,12 +12,12 @@ pub struct RTriggerContext {
 impl RTriggerContext {
     pub fn new(trigger_id: String, connection: Value, store: String, serialized_input: String) -> Result<Self, Error> {
         if connection.is_nil() {
-            return Err(Error::new(magnus::exception::runtime_error(), "Connection is required"));
+            return Err(runtime_error("Connection is required"));
         }
 
         let wrapped_connection: RConnection = match TryConvert::try_convert(connection) {
             Ok(conn) => conn,
-            Err(_) => return Err(Error::new(magnus::exception::runtime_error(), "Connection is required")),
+            Err(_) => return Err(runtime_error("Connection is required")),
         };
 
         let inner = TriggerContext {
@@ -56,12 +57,12 @@ impl TryConvert for RTriggerContext {
         let serialized_input: String = val.funcall("serialized_input", ())?;
 
         if connection_val.is_nil() {
-            return Err(Error::new(magnus::exception::runtime_error(), "Connection is required"));
+            return Err(runtime_error("Connection is required"));
         }
 
         let wrapped_connection: RConnection = match TryConvert::try_convert(connection_val) {
             Ok(conn) => conn,
-            Err(_) => return Err(Error::new(magnus::exception::runtime_error(), "Connection is required")),
+            Err(_) => return Err(runtime_error("Connection is required")),
         };
 
         let inner = TriggerContext {

@@ -5,6 +5,7 @@ use wasmtime::Store;
 
 use crate::app_state::AppState;
 use crate::component::{app, build_engine, build_linker, build_store, BridgeWrapper};
+use crate::error_mapping::runtime_error;
 use crate::types::{ActionContext, ActionResponse, AppError, ErrorCode, TriggerContext, TriggerResponse};
 use super::{
     action_context::RActionContext,
@@ -33,10 +34,7 @@ impl MutRApp {
         if let Some(instance) = &*instance {
             Ok(instance.wit_version().to_string())
         } else {
-            Err(Error::new(
-                magnus::exception::runtime_error(),
-                "App not initialized",
-            ))
+            Err(runtime_error("App not initialized"))
         }
     }
 
@@ -47,10 +45,7 @@ impl MutRApp {
         if let Some(instance) = &*instance {
             Ok(instance.connections_supported())
         } else {
-            Err(Error::new(
-                magnus::exception::runtime_error(),
-                "App not initialized",
-            ))
+            Err(runtime_error("App not initialized"))
         }
     }
 
@@ -70,10 +65,7 @@ impl MutRApp {
             }
 
             instance.call_connection_config(store).map_err(|err| {
-                Error::new(
-                    magnus::exception::runtime_error(),
-                    format!("Failed to read connection-config: {err}"),
-                )
+                runtime_error(format!("Failed to read connection-config: {err}"))
             })
         } else {
             Err(AppError {
@@ -88,10 +80,7 @@ impl MutRApp {
         let mut this = self.0.borrow_mut();
         let engine = build_engine();
         let linker = build_linker(&engine).map_err(|e| {
-            Error::new(
-                magnus::exception::runtime_error(),
-                format!("Failed to build linker: {}", e),
-            )
+            runtime_error(format!("Failed to build linker: {}", e))
         })?;
         let mut store = if env_vars.is_empty() {
             build_store(&engine, None)
@@ -101,12 +90,9 @@ impl MutRApp {
 
         let app = app(component_path.clone(), engine, &mut store, linker).map_err(|e| {
             if e.to_string().contains("Incompatible WASM file version") {
-                Error::new(magnus::exception::runtime_error(), e.to_string())
+                runtime_error(e.to_string())
             } else {
-                Error::new(
-                    magnus::exception::runtime_error(),
-                    format!("Failed to initialize app: {}", e),
-                )
+                runtime_error(format!("Failed to initialize app: {}", e))
             }
         })?;
 
@@ -129,10 +115,7 @@ impl MutRApp {
                     if let Some(wit_err) = err.downcast_ref::<AppError>() {
                         Err(wit_err.clone().into())
                     } else {
-                        Err(Error::new(
-                            magnus::exception::runtime_error(),
-                            format!("Unexpected error: {:?}", err),
-                        ))
+                        Err(runtime_error(format!("Unexpected error: {:?}", err)))
                     }
                 }
             }
@@ -158,10 +141,7 @@ impl MutRApp {
                     if let Some(wit_err) = err.downcast_ref::<AppError>() {
                         Err(wit_err.clone().into())
                     } else {
-                        Err(Error::new(
-                            magnus::exception::runtime_error(),
-                            format!("Unexpected error: {:?}", err),
-                        ))
+                        Err(runtime_error(format!("Unexpected error: {:?}", err)))
                     }
                 }
             }
@@ -187,10 +167,7 @@ impl MutRApp {
                     if let Some(wit_err) = err.downcast_ref::<AppError>() {
                         Err(wit_err.clone().into())
                     } else {
-                        Err(Error::new(
-                            magnus::exception::runtime_error(),
-                            format!("Unexpected error: {:?}", err),
-                        ))
+                        Err(runtime_error(format!("Unexpected error: {:?}", err)))
                     }
                 }
             }
@@ -252,10 +229,7 @@ impl MutRApp {
                     if let Some(wit_err) = err.downcast_ref::<AppError>() {
                         Err(wit_err.clone().into())
                     } else {
-                        Err(Error::new(
-                            magnus::exception::runtime_error(),
-                            format!("Unexpected error: {:?}", err),
-                        ))
+                        Err(runtime_error(format!("Unexpected error: {:?}", err)))
                     }
                 }
             }
@@ -281,10 +255,7 @@ impl MutRApp {
                     if let Some(wit_err) = err.downcast_ref::<AppError>() {
                         Err(wit_err.clone().into())
                     } else {
-                        Err(Error::new(
-                            magnus::exception::runtime_error(),
-                            format!("Unexpected error: {:?}", err),
-                        ))
+                        Err(runtime_error(format!("Unexpected error: {:?}", err)))
                     }
                 }
             }
@@ -310,10 +281,7 @@ impl MutRApp {
                     if let Some(wit_err) = err.downcast_ref::<AppError>() {
                         Err(wit_err.clone().into())
                     } else {
-                        Err(Error::new(
-                            magnus::exception::runtime_error(),
-                            format!("Unexpected error: {:?}", err),
-                        ))
+                        Err(runtime_error(format!("Unexpected error: {:?}", err)))
                     }
                 }
             }

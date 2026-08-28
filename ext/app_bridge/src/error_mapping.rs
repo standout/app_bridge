@@ -2,6 +2,11 @@ use crate::types::{AppError, ErrorCode};
 use magnus::prelude::*;
 use magnus::{Error, ExceptionClass, RObject, Ruby};
 
+pub fn runtime_error(message: impl Into<String>) -> Error {
+    let ruby = Ruby::get().unwrap();
+    Error::new(ruby.exception_runtime_error(), message.into())
+}
+
 impl From<ErrorCode> for ExceptionClass {
     fn from(value: ErrorCode) -> Self {
         fn get_class(name: &str) -> ExceptionClass {

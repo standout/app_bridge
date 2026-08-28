@@ -11,7 +11,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-magnus = { version = "0.7.1" }
+magnus = { version = "0.8.2" }
 wasmtime = "44.0.2"
 wasmtime-wasi = "44.0.2"
 wasmtime-wasi-io = "44.0.2"
