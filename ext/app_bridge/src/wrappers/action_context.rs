@@ -1,4 +1,5 @@
-use magnus::{prelude::*, scan_args::scan_args, Error, RHash, Ruby, Symbol, TryConvert, Value};
+use magnus::{prelude::*, scan_args::scan_args, Error, RHash, Ruby, TryConvert, Value};
+use crate::error_mapping::runtime_error;
 use crate::types::{ActionContext, ReferenceObject};
 use super::connection::RConnection;
 
@@ -33,12 +34,12 @@ impl RActionContext {
         retry: Option<Value>,
     ) -> Result<Self, Error> {
         if connection.is_nil() {
-            return Err(Error::new(magnus::exception::runtime_error(), "Connection is required"));
+            return Err(runtime_error("Connection is required"));
         }
 
         let wrapped_connection: RConnection = match TryConvert::try_convert(connection) {
             Ok(conn) => conn,
-            Err(_) => return Err(Error::new(magnus::exception::runtime_error(), "Connection is required")),
+            Err(_) => return Err(runtime_error("Connection is required")),
         };
 
         let reference_object = match retry {
@@ -99,12 +100,12 @@ impl TryConvert for RActionContext {
         };
 
         if connection_val.is_nil() {
-            return Err(Error::new(magnus::exception::runtime_error(), "Connection is required"));
+            return Err(runtime_error("Connection is required"));
         }
 
         let wrapped_connection: RConnection = match TryConvert::try_convert(connection_val) {
             Ok(conn) => conn,
-            Err(_) => return Err(Error::new(magnus::exception::runtime_error(), "Connection is required")),
+            Err(_) => return Err(runtime_error("Connection is required")),
         };
 
         let inner = ActionContext {
@@ -124,8 +125,8 @@ impl TryConvert for RActionContext {
 fn fetch_hash_string(hash: Value, key: &str) -> Result<String, Error> {
     let value: Value = hash.funcall("[]", (key,))?;
     let value = if value.is_nil() {
-        let symbol = Symbol::new(key);
-        hash.funcall("[]", (symbol,))?
+        let ruby = Ruby::get().unwrap();
+        hash.funcall("[]", (ruby.to_symbol(key),))?
     } else {
         value
     };
