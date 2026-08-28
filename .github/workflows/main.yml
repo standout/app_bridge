@@ -19,7 +19,8 @@ jobs:
           - '3.4.9'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+
       - name: Set up Ruby & Rust
         uses: oxidize-rb/actions/setup-ruby-and-rust@v1
         with:
@@ -27,7 +28,9 @@ jobs:
           bundler-cache: true
           cargo-cache: true
           rubygems: '3.5.22'
+
       - name: Add Rust target for wasi2 (for example app)
         run: rustup target add wasm32-wasip2
+
       - name: Run the default task
         run: bundle exec rake
