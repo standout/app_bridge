@@ -28,7 +28,7 @@ jobs:
       matrix:
         platform: ${{ fromJSON(needs.ci-data.outputs.result).supported-ruby-platforms }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -44,7 +44,7 @@ jobs:
           ruby-versions: ${{ join(fromJSON(needs.ci-data.outputs.result).stable-ruby-versions, ',') }}
           pre-script: export BUNDLE_WITHOUT=development:test
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: cross-gem-${{ matrix.platform }}
           path: ${{ steps.cross-gem.outputs.gem-path }}
@@ -53,17 +53,25 @@ jobs:
     name: Publish native gems to RubyGems (sequential)
     runs-on: ubuntu-latest
     needs: [ci-data, cross-gem]
+
+    permissions:
+      contents: read
+      id-token: write
+
+    environment: release
+
     steps:
       - name: Download all built gems
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: cross-gem-*
           path: pkg
           merge-multiple: true
 
+      - name: Configure RubyGems credentials
+        uses: rubygems/configure-rubygems-credentials@v2.1.0
+
       - name: Push native gems sequentially (retry + delay)
-        env:
-          GEM_HOST_API_KEY: "${{ secrets.RUBYGEMS_API_KEY }}"
         run: |
           set -euo pipefail
 
@@ -115,14 +123,25 @@ jobs:
     name: Publish gem to RubyGems
     runs-on: ubuntu-latest
     needs: [publish-native-gems]
+
+    permissions:
+      contents: read
+      id-token: write
+
+    environment: release
+
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4.9"
+
+      - name: Configure RubyGems credentials
+        uses: rubygems/configure-rubygems-credentials@v2.1.0
+
       - name: Build the gem
         run: gem build *.gemspec
+
       - name: Publish to RubyGems
-        env:
-          GEM_HOST_API_KEY: "${{ secrets.RUBYGEMS_API_KEY }}"
         run: gem push *.gem
