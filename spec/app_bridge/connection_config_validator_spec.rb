@@ -108,6 +108,55 @@ RSpec.describe AppBridge::ConnectionConfigValidator do
       expect { described_class.validate!(valid_config) }.not_to raise_error
     end
 
+    it "accepts runtime.tls mapped from arbitrary form field names" do
+      config = {
+        strategies: [
+          {
+            id: "default",
+            type: "api_key",
+            storage: %w[api_key cert_file key_file ca_file],
+            connection_schema: {
+              type: "object",
+              properties: {
+                api_key: { type: "string", format: "password" },
+                cert_file: { type: "string", format: "file" },
+                key_file: { type: "string", format: "file" },
+                ca_file: { type: "string", format: "file" }
+              },
+              required: %w[api_key cert_file key_file]
+            }
+          }
+        ],
+        default_strategy: "default",
+        runtime: {
+          base_url: "https://api.example.com",
+          headers: {
+            Authorization: { template: "Bearer {{api_key}}" }
+          },
+          tls: {
+            client_cert: { template: "{{cert_file}}" },
+            client_key: { template: "{{key_file}}" },
+            ca_cert: { template: "{{ca_file}}" }
+          }
+        }
+      }
+
+      expect { described_class.validate!(config) }.not_to raise_error
+    end
+
+    it "accepts PKCS#12 via runtime.tls" do
+      config = valid_config.merge(
+        runtime: valid_config[:runtime].merge(
+          tls: {
+            client_p12: { template: "{{p12_file}}" },
+            client_p12_password: { template: "{{p12_password}}" }
+          }
+        )
+      )
+
+      expect { described_class.validate!(config) }.not_to raise_error
+    end
+
     it "accepts disabled connection-config" do
       disabled = { strategies: [], default_strategy: "", runtime: {} }
 

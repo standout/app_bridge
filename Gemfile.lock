@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    app_bridge (6.0.0)
+    app_bridge (6.1.0)
       json_schemer (~> 2.3)
       rb_sys (~> 0.9.130)
 

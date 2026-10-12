@@ -132,6 +132,7 @@ impl MutRApp {
 
     fn read_v6_schema(
         &self,
+        connection_serialized_data: Option<&str>,
         read: impl FnOnce(
             &v6::Bridge,
             &mut Store<AppState>,
@@ -146,14 +147,21 @@ impl MutRApp {
         else {
             return Err(runtime_error("Expected a WIT v6 component"));
         };
-        let response = read(app, store)
-            .map_err(|err| runtime_error(err.to_string()))?
-            .map_err(AppError::from)?;
-        Ok(match response {
-            SchemaResponse::Complete(json) => ("complete".into(), Some(json)),
-            SchemaResponse::Partial(json) => ("partial".into(), Some(json)),
-            SchemaResponse::ConnectionRequired => ("connection_required".into(), None),
-        })
+        if let Some(serialized_data) = connection_serialized_data {
+            apply_connection_tls(store, serialized_data).map_err(Error::from)?;
+        }
+        let result = read(app, store)
+            .map_err(|err| runtime_error(err.to_string()))
+            .and_then(|response| {
+                let response = response.map_err(AppError::from)?;
+                Ok(match response {
+                    SchemaResponse::Complete(json) => ("complete".into(), Some(json)),
+                    SchemaResponse::Partial(json) => ("partial".into(), Some(json)),
+                    SchemaResponse::ConnectionRequired => ("connection_required".into(), None),
+                })
+            });
+        clear_connection_tls(store);
+        result
     }
 
     pub fn action_schema_result(
@@ -167,13 +175,16 @@ impl MutRApp {
         let reference = reference
             .map(RActionContext::parse_reference_object)
             .transpose()?;
+        let tls_data = connection
+            .as_ref()
+            .map(|c| c.inner.serialized_data.clone());
         let ctx = ActionSchemaContext {
             action_id,
             connection: connection.map(|c| (&c.inner).into()),
             serialized_input,
             reference_object: reference.as_ref().map(Into::into),
         };
-        self.read_v6_schema(|app, store| {
+        self.read_v6_schema(tls_data.as_deref(), |app, store| {
             let actions = app.standout_app_actions();
             if output {
                 actions.call_output_schema(store, &ctx)
@@ -191,13 +202,16 @@ impl MutRApp {
         serialized_input: String,
         store: String,
     ) -> Result<(String, Option<String>), Error> {
+        let tls_data = connection
+            .as_ref()
+            .map(|c| c.inner.serialized_data.clone());
         let ctx = TriggerSchemaContext {
             trigger_id,
             connection: connection.map(|c| (&c.inner).into()),
             serialized_input,
             store,
         };
-        self.read_v6_schema(|app, store| {
+        self.read_v6_schema(tls_data.as_deref(), |app, store| {
             let triggers = app.standout_app_triggers();
             if output {
                 triggers.call_output_schema(store, &ctx)
@@ -213,8 +227,10 @@ impl MutRApp {
         let mut store = binding.store.borrow_mut();
 
         if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
-            let context_ctx = context.into();
-            match instance.call_trigger_input_schema(store, &context_ctx) {
+            let context_ctx: TriggerContext = context.into();
+            apply_connection_tls(store, &context_ctx.connection.serialized_data)
+                .map_err(Error::from)?;
+            let result = match instance.call_trigger_input_schema(store, &context_ctx) {
                 Ok(result) => result.map_err(Into::into),
                 Err(err) => {
                     if let Some(wit_err) = err.downcast_ref::<AppError>() {
@@ -223,7 +239,9 @@ impl MutRApp {
                         Err(runtime_error(format!("Unexpected error: {:?}", err)))
                     }
                 }
-            }
+            };
+            clear_connection_tls(store);
+            result
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
@@ -239,8 +257,10 @@ impl MutRApp {
         let mut store = binding.store.borrow_mut();
 
         if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
-            let context_ctx = context.into();
-            match instance.call_trigger_output_schema(store, &context_ctx) {
+            let context_ctx: TriggerContext = context.into();
+            apply_connection_tls(store, &context_ctx.connection.serialized_data)
+                .map_err(Error::from)?;
+            let result = match instance.call_trigger_output_schema(store, &context_ctx) {
                 Ok(result) => result.map_err(Into::into),
                 Err(err) => {
                     if let Some(wit_err) = err.downcast_ref::<AppError>() {
@@ -249,7 +269,9 @@ impl MutRApp {
                         Err(runtime_error(format!("Unexpected error: {:?}", err)))
                     }
                 }
-            }
+            };
+            clear_connection_tls(store);
+            result
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
@@ -275,7 +297,8 @@ impl MutRApp {
         let mut store = binding.store.borrow_mut();
 
         if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
-            match instance.call_fetch_events(store, &context) {
+            apply_connection_tls(store, &context.connection.serialized_data)?;
+            let result = match instance.call_fetch_events(store, &context) {
                 Ok(response) => response,
                 Err(err) => {
                     if let Some(wit_err) = err.downcast_ref::<AppError>() {
@@ -287,7 +310,9 @@ impl MutRApp {
                         })
                     }
                 }
-            }
+            };
+            clear_connection_tls(store);
+            result
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
@@ -327,8 +352,10 @@ impl MutRApp {
         let mut store = binding.store.borrow_mut();
 
         if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
-            let context_ctx = context.into();
-            match instance.call_action_input_schema(store, &context_ctx) {
+            let context_ctx: ActionContext = context.into();
+            apply_connection_tls(store, &context_ctx.connection.serialized_data)
+                .map_err(Error::from)?;
+            let result = match instance.call_action_input_schema(store, &context_ctx) {
                 Ok(result) => result.map_err(Into::into),
                 Err(err) => {
                     if let Some(wit_err) = err.downcast_ref::<AppError>() {
@@ -337,7 +364,9 @@ impl MutRApp {
                         Err(runtime_error(format!("Unexpected error: {:?}", err)))
                     }
                 }
-            }
+            };
+            clear_connection_tls(store);
+            result
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
@@ -353,8 +382,10 @@ impl MutRApp {
         let mut store = binding.store.borrow_mut();
 
         if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
-            let context_ctx = context.into();
-            match instance.call_action_output_schema(store, &context_ctx) {
+            let context_ctx: ActionContext = context.into();
+            apply_connection_tls(store, &context_ctx.connection.serialized_data)
+                .map_err(Error::from)?;
+            let result = match instance.call_action_output_schema(store, &context_ctx) {
                 Ok(result) => result.map_err(Into::into),
                 Err(err) => {
                     if let Some(wit_err) = err.downcast_ref::<AppError>() {
@@ -363,7 +394,9 @@ impl MutRApp {
                         Err(runtime_error(format!("Unexpected error: {:?}", err)))
                     }
                 }
-            }
+            };
+            clear_connection_tls(store);
+            result
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
@@ -389,7 +422,8 @@ impl MutRApp {
         let mut store = binding.store.borrow_mut();
 
         if let (Some(instance), Some(store)) = (&mut *instance, &mut *store) {
-            match instance.call_execute(store, &context) {
+            apply_connection_tls(store, &context.connection.serialized_data)?;
+            let result = match instance.call_execute(store, &context) {
                 Ok(response) => response,
                 Err(err) => {
                     if let Some(wit_err) = err.downcast_ref::<AppError>() {
@@ -401,7 +435,9 @@ impl MutRApp {
                         })
                     }
                 }
-            }
+            };
+            clear_connection_tls(store);
+            result
         } else {
             Err(AppError {
                 code: ErrorCode::InternalError,
@@ -409,4 +445,21 @@ impl MutRApp {
             })
         }
     }
+}
+
+fn apply_connection_tls(
+    store: &mut Store<AppState>,
+    serialized_data: &str,
+) -> Result<(), AppError> {
+    store
+        .data_mut()
+        .apply_connection_tls(serialized_data)
+        .map_err(|message| AppError {
+            code: ErrorCode::Misconfigured,
+            message,
+        })
+}
+
+fn clear_connection_tls(store: &mut Store<AppState>) {
+    store.data_mut().clear_connection_tls();
 }

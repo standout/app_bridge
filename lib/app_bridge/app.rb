@@ -63,7 +63,7 @@ module AppBridge
     private
 
     def action_schema_result(direction, key, connection, input: "{}", reference_object: nil)
-      if wit_version == "6.0.0"
+      if wit_major_version >= 6
         return _action_schema_result(direction == :output, key, connection, input,
                                      reference_object)
       end
@@ -74,12 +74,16 @@ module AppBridge
     end
 
     def trigger_schema_result(direction, key, connection, input: "{}", store: "")
-      return _trigger_schema_result(direction == :output, key, connection, input, store) if wit_version == "6.0.0"
+      return _trigger_schema_result(direction == :output, key, connection, input, store) if wit_major_version >= 6
 
       legacy_schema(connection) do |credential|
         context = TriggerContext.new(key, credential, store, input)
         public_send("trigger_#{direction}_schema", context)
       end
+    end
+
+    def wit_major_version
+      wit_version.to_s.split(".", 2).first.to_i
     end
 
     def legacy_schema(connection)
