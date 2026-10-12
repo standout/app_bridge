@@ -4,6 +4,7 @@ mod component;
 mod error_mapping;
 mod file_ops;
 mod request_builder;
+mod tls_client;
 mod types;
 
 mod wrappers;
