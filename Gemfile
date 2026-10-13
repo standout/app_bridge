@@ -14,7 +14,7 @@ unless ENV["RUBY_TARGET"]
     gem "rspec", "~> 3.13"
     gem "rspec-benchmark"
 
-    gem "rubocop", "~> 1.81"
+    gem "rubocop", "~> 1.90"
 
     gem "json"
   end
