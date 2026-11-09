@@ -316,7 +316,7 @@ Connectors embed `connection-config.json` via `include_str!` and export it throu
 To contribute or modify this gem, ensure you have the following dependencies installed:
 
 - **Ruby 3.3.0** (or later)
-- **Rust 1.84.0** (or later)
+- **Rust 1.97.0** (or later)
 
 ### Setting Up the Development Environment
 
