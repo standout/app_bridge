@@ -12,9 +12,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 magnus = { version = "0.8.2" }
-wasmtime = "44.0.2"
-wasmtime-wasi = "44.0.2"
-wasmtime-wasi-io = "44.0.2"
+wasmtime = "50.0.1"
+wasmtime-wasi = "50.0.1"
+wasmtime-wasi-io = "50.0.1"
 reqwest = { version = "0.12", features = ["blocking", "json", "native-tls-vendored"] }
 base64 = "0.22"
 infer = "0.16"
