@@ -311,6 +311,44 @@ impl v5::standout::app::new_feature::Host for AppState {
 
 Connectors embed `connection-config.json` via `include_str!` and export it through the `connections` interface. Integrationer reads it **once when the WASM version is saved**, validates against [connection-config-schema.json](ext/app_bridge/docs/connection-config-schema.json), and stores it on the version. Runtime connection flows use the stored JSON, not a live WASM call.
 
+### mTLS / client certificates
+
+Connectors cannot terminate TLS themselves. Outbound HTTPS uses the host `http` interface. Mutual TLS is **not a strategy type** — declare it under `runtime.tls`, the same way as `runtime.headers`. Form fields can use any names; templates map them into a `tls` object on serialized-data.
+
+The host applies that identity to WIT `http` (`RequestBuilder.send()`) for the invocation. `file.normalize` does **not** use it. Integrationer applies the same `runtime.tls` mapping to OAuth token calls, session login, and `post_connect`. Before WASM, the platform decrypts PEM keys, splits a combined cert+key file, and emits certificate PEM plus an unencrypted PKCS#8 `client_key`. The host does not parse those formats itself.
+
+```json
+{
+  "strategies": [{
+    "id": "default",
+    "type": "api_key",
+    "storage": ["api_key", "cert_file", "key_file"],
+    "connection_schema": {
+      "type": "object",
+      "required": ["api_key", "cert_file", "key_file"],
+      "properties": {
+        "api_key": { "type": "string", "format": "password" },
+        "cert_file": { "type": "string", "format": "file" },
+        "key_file": { "type": "string", "format": "file" }
+      }
+    }
+  }],
+  "default_strategy": "default",
+  "runtime": {
+    "base_url": "https://api.example.com",
+    "headers": {
+      "Authorization": { "template": "Bearer {{api_key}}" }
+    },
+    "tls": {
+      "client_cert": { "template": "{{cert_file}}" },
+      "client_key": { "template": "{{key_file}}" }
+    }
+  }
+}
+```
+
+`runtime.tls` keys: `client_cert`, `client_key`, `client_key_password`, `client_p12`, `client_p12_password`, `ca_cert`.
+
 ## Development
 
 To contribute or modify this gem, ensure you have the following dependencies installed:

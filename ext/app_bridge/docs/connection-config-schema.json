@@ -22,7 +22,7 @@
     },
     "connection_schema": {
       "type": "object",
-      "description": "JSON Schema for user input before connection (shared fallback). Field values listed in strategy storage are available as {{field}} in templates."
+      "description": "JSON Schema for user input before connection (shared fallback). Field values listed in strategy storage are available as {{field}} in templates. Use format \"file\" on properties that the platform should collect as file uploads (PEM certificates, PKCS#12, keys)."
     },
     "runtime": {
       "$ref": "#/$defs/runtime",
@@ -248,7 +248,8 @@
           "description": "Label shown when the user picks authentication type before connecting"
         },
         "type": {
-          "enum": ["oauth2", "basic_auth", "api_key", "session", "none", "custom"]
+          "enum": ["oauth2", "basic_auth", "api_key", "session", "none", "custom"],
+          "description": "Application-level auth (oauth2, api_key, session, …). Mutual TLS is configured separately under runtime.tls."
         },
         "authorization_server": {
           "$ref": "#/$defs/authorization_server",
@@ -493,6 +494,37 @@
         "fields": {
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/templated_value" }
+        },
+        "tls": {
+          "$ref": "#/$defs/runtime_tls",
+          "description": "Client TLS identity for WIT http and platform HTTP (OAuth token, session, post_connect). Not applied to file.normalize. Map any connection storage field names with templates, same as headers."
+        }
+      }
+    },
+    "runtime_tls": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "client_cert": {
+          "$ref": "#/$defs/templated_value",
+          "description": "PEM certificate, or combined cert+key PEM. Platform splits to certificate-only PEM before WASM."
+        },
+        "client_key": {
+          "$ref": "#/$defs/templated_value",
+          "description": "PEM private key when not bundled in client_cert. Platform emits unencrypted PKCS#8 before WASM."
+        },
+        "client_key_password": {
+          "$ref": "#/$defs/templated_value",
+          "description": "Password for an encrypted PEM key; platform decrypts and drops this before WASM"
+        },
+        "client_p12": {
+          "$ref": "#/$defs/templated_value",
+          "description": "PKCS#12 / PFX (data-url, base64, or file object)"
+        },
+        "client_p12_password": { "$ref": "#/$defs/templated_value" },
+        "ca_cert": {
+          "$ref": "#/$defs/templated_value",
+          "description": "Optional extra CA PEM (single certificate or multi-cert bundle; all are trusted)"
         }
       }
     }

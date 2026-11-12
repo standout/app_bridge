@@ -1,5 +1,6 @@
 use crate::component::{v3, v4, v4_1, v5};
 use crate::component::v4::standout::app::http::Request;
+use crate::tls_client;
 use reqwest::blocking::Client;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -11,6 +12,7 @@ pub struct AppState {
     ctx: WasiCtx,
     table: ResourceTable,
     pub client: Arc<Mutex<Client>>,
+    tls_client: Option<Arc<Mutex<Client>>>,
     pub request_list: HashMap<u32, Request>,
     pub request_body_bytes: HashMap<u32, Vec<u8>>,
     pub next_request_id: u32,
@@ -23,11 +25,30 @@ impl AppState {
             ctx,
             table: ResourceTable::new(),
             client: Arc::new(Mutex::new(Client::new())),
+            tls_client: None,
             request_list: HashMap::new(),
             request_body_bytes: HashMap::new(),
             next_request_id: 0,
             environment_variables: env_vars.unwrap_or_default(),
         }
+    }
+
+    pub fn http_client(&self) -> Arc<Mutex<Client>> {
+        self.tls_client.clone().unwrap_or_else(|| self.client.clone())
+    }
+
+    /// Configure a connection-scoped HTTP client from serialized connection data.
+    /// Clears any previous identity when the payload has no TLS material.
+    pub fn apply_connection_tls(&mut self, serialized_data: &str) -> Result<(), String> {
+        match tls_client::client_from_serialized_data(serialized_data)? {
+            Some(client) => self.tls_client = Some(Arc::new(Mutex::new(client))),
+            None => self.tls_client = None,
+        }
+        Ok(())
+    }
+
+    pub fn clear_connection_tls(&mut self) {
+        self.tls_client = None;
     }
 }
 

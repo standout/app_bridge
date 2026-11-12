@@ -121,7 +121,7 @@ macro_rules! impl_host_request_builder {
                 match self.request_list.get(&id).cloned() {
                     Some(request) => {
                         let body_bytes = self.request_body_bytes.get(&id).map(|b| b.as_slice());
-                        send_request(&self.client, &request, body_bytes)
+                        send_request(&self.http_client(), &request, body_bytes)
                             .map(Into::into)
                             .map_err(Into::into)
                     }
@@ -481,6 +481,42 @@ mod tests {
 
         assert_eq!(response.status, 200);
         assert_eq!(response.body_bytes, Some(body));
+        mock.assert();
+    }
+
+    #[test]
+    fn rejects_invalid_connection_tls_material() {
+        let mut app_state = AppState::default();
+        let err = app_state
+            .apply_connection_tls(
+                r#"{"tls":{"client_cert":"not-a-certificate","client_key":"not-a-key"}}"#,
+            )
+            .unwrap_err();
+        assert!(err.contains("client_cert"), "{err}");
+    }
+
+    #[test]
+    fn sends_http_after_applying_pem_identity() {
+        use v4::standout::app::http::HostRequestBuilder;
+
+        let mut app_state = AppState::default();
+        app_state
+            .apply_connection_tls(&crate::tls_client::test_pem_connection_json())
+            .expect("PEM identity should apply");
+
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(GET).path("/mtls-plain");
+            then.status(200).body("ok");
+        });
+        let url = format!("{}/mtls-plain", server.base_url());
+
+        let builder = app_state.new();
+        let builder = app_state.method(builder, Method::Get);
+        let builder = app_state.url(builder, url);
+        let response = app_state.send(builder).expect("Request failed");
+
+        assert_eq!(response.status, 200);
         mock.assert();
     }
 }
