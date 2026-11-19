@@ -132,15 +132,23 @@ impl MutRApp {
 
     fn read_v6_schema(
         &self,
-        read: impl FnOnce(&v6::Bridge, &mut Store<AppState>) -> wasmtime::Result<Result<SchemaResponse, v6::standout::app::types::AppError>>,
+        read: impl FnOnce(
+            &v6::Bridge,
+            &mut Store<AppState>,
+        ) -> wasmtime::Result<
+            Result<SchemaResponse, v6::standout::app::types::AppError>,
+        >,
     ) -> Result<(String, Option<String>), Error> {
         let binding = self.0.borrow();
         let instance = binding.instance.borrow();
         let mut store = binding.store.borrow_mut();
-        let (Some(BridgeWrapper::V6(app)), Some(store)) = (instance.as_ref(), store.as_mut()) else {
+        let (Some(BridgeWrapper::V6(app)), Some(store)) = (instance.as_ref(), store.as_mut())
+        else {
             return Err(runtime_error("Expected a WIT v6 component"));
         };
-        let response = read(app, store).map_err(|err| runtime_error(err.to_string()))?.map_err(AppError::from)?;
+        let response = read(app, store)
+            .map_err(|err| runtime_error(err.to_string()))?
+            .map_err(AppError::from)?;
         Ok(match response {
             SchemaResponse::Complete(json) => ("complete".into(), Some(json)),
             SchemaResponse::Partial(json) => ("partial".into(), Some(json)),
@@ -148,20 +156,54 @@ impl MutRApp {
         })
     }
 
-    pub fn action_schema_result(&self, output: bool, action_id: String, connection: Option<RConnection>, serialized_input: String, reference: Option<Value>) -> Result<(String, Option<String>), Error> {
-        let reference = reference.map(RActionContext::parse_reference_object).transpose()?;
-        let ctx = ActionSchemaContext { action_id, connection: connection.map(|c| (&c.inner).into()), serialized_input, reference_object: reference.as_ref().map(Into::into) };
+    pub fn action_schema_result(
+        &self,
+        output: bool,
+        action_id: String,
+        connection: Option<RConnection>,
+        serialized_input: String,
+        reference: Option<Value>,
+    ) -> Result<(String, Option<String>), Error> {
+        let reference = reference
+            .map(RActionContext::parse_reference_object)
+            .transpose()?;
+        let ctx = ActionSchemaContext {
+            action_id,
+            connection: connection.map(|c| (&c.inner).into()),
+            serialized_input,
+            reference_object: reference.as_ref().map(Into::into),
+        };
         self.read_v6_schema(|app, store| {
             let actions = app.standout_app_actions();
-            if output { actions.call_output_schema(store, &ctx) } else { actions.call_input_schema(store, &ctx) }
+            if output {
+                actions.call_output_schema(store, &ctx)
+            } else {
+                actions.call_input_schema(store, &ctx)
+            }
         })
     }
 
-    pub fn trigger_schema_result(&self, output: bool, trigger_id: String, connection: Option<RConnection>, serialized_input: String, store: String) -> Result<(String, Option<String>), Error> {
-        let ctx = TriggerSchemaContext { trigger_id, connection: connection.map(|c| (&c.inner).into()), serialized_input, store };
+    pub fn trigger_schema_result(
+        &self,
+        output: bool,
+        trigger_id: String,
+        connection: Option<RConnection>,
+        serialized_input: String,
+        store: String,
+    ) -> Result<(String, Option<String>), Error> {
+        let ctx = TriggerSchemaContext {
+            trigger_id,
+            connection: connection.map(|c| (&c.inner).into()),
+            serialized_input,
+            store,
+        };
         self.read_v6_schema(|app, store| {
             let triggers = app.standout_app_triggers();
-            if output { triggers.call_output_schema(store, &ctx) } else { triggers.call_input_schema(store, &ctx) }
+            if output {
+                triggers.call_output_schema(store, &ctx)
+            } else {
+                triggers.call_input_schema(store, &ctx)
+            }
         })
     }
 
