@@ -55,6 +55,13 @@ namespace :fixtures do
       Process.wait(move_pid)
     end
 
+    desc "Compile the optional connection schema fixture"
+    task :compile_rust_v6 do
+      dir = "spec/fixtures/components/rust_app_v6"
+      Dir.chdir(dir) { sh "cargo build --locked --release --target wasm32-wasip2 --target-dir target" }
+      cp "#{dir}/target/wasm32-wasip2/release/rust_app_v6.wasm", "#{dir}.wasm"
+    end
+
     desc "Compile the v5 fixture app (connections interface)"
     task :compile_rust_v5 do
       pwd = "spec/fixtures/components/rust_app_v5"
@@ -76,4 +83,4 @@ end
 
 desc "Build all fixtures"
 task fixtures: %i[fixtures:apps:clean fixtures:apps:compile_rust fixtures:apps:compile_js fixtures:apps:compile_rust_v3
-                  fixtures:apps:compile_rust_v5]
+                  fixtures:apps:compile_rust_v5 fixtures:apps:compile_rust_v6]

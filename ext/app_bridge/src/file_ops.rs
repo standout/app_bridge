@@ -1,5 +1,5 @@
 use crate::app_state::AppState;
-use crate::component::{v4, v4_1, v5};
+use crate::component::{v4, v4_1, v5, v6};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 
 /// Detects the type of input string
@@ -258,6 +258,7 @@ macro_rules! impl_file_host {
 impl_file_host!(v4);
 impl_file_host!(v4_1);
 impl_file_host!(v5);
+impl_file_host!(v6);
 
 #[cfg(test)]
 mod tests {
