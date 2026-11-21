@@ -28,11 +28,18 @@ RSpec.describe AppBridge::App, "#schema_result" do
   context "with a v5 component" do
     let(:component) { "rust_app_v5" }
 
-    it "uses original exports with an account and skips them without one" do
+    it "asks for a connection only when an anonymous legacy call fails" do
+      allow(app).to receive(:action_input_schema).and_raise(AppBridge::UnauthenticatedError)
+      expect(app.schema_result(:action, :input, key: "http-get")).to eq(["connection_required", nil])
+      expect { app.schema_result(:action, :input, key: "http-get", connection: account) }
+        .to raise_error(AppBridge::UnauthenticatedError)
+    end
+
+    it "reads static schemas through the original exports with and without an account" do
       { action: "http-get", trigger: "simple-trigger" }.each do |kind, key|
         %i[input output].each do |direction|
-          expect(app.schema_result(kind, direction, key: key)).to eq(["connection_required", nil])
           status, schema = app.schema_result(kind, direction, key: key, connection: account)
+          expect(app.schema_result(kind, direction, key: key)).to eq([status, schema])
           expect(status).to eq("complete")
           expect(JSON.parse(schema)).to include("type" => "object")
         end

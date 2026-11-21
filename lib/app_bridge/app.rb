@@ -67,18 +67,26 @@ module AppBridge
         return _action_schema_result(direction == :output, key, connection, input,
                                      reference_object)
       end
-      return ["connection_required", nil] unless connection
-
-      context = ActionContext.new(key, connection, input, reference_object)
-      ["complete", public_send("action_#{direction}_schema", context)]
+      legacy_schema(connection) do |credential|
+        context = ActionContext.new(key, credential, input, reference_object)
+        public_send("action_#{direction}_schema", context)
+      end
     end
 
     def trigger_schema_result(direction, key, connection, input: "{}", store: "")
       return _trigger_schema_result(direction == :output, key, connection, input, store) if wit_version == "6.0.0"
-      return ["connection_required", nil] unless connection
+      legacy_schema(connection) do |credential|
+        context = TriggerContext.new(key, credential, store, input)
+        public_send("trigger_#{direction}_schema", context)
+      end
+    end
 
-      context = TriggerContext.new(key, connection, store, input)
-      ["complete", public_send("trigger_#{direction}_schema", context)]
+    def legacy_schema(connection)
+      ["complete", yield(connection || Connection.new("", "", "{}"))]
+    rescue AppBridge::Error, RuntimeError
+      raise if connection
+
+      ["connection_required", nil]
     end
 
     def validate_number_of_events!(events)
