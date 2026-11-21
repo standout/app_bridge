@@ -10,7 +10,7 @@ pub struct RActionContext {
 }
 
 impl RActionContext {
-    fn parse_reference_object(value: Value) -> Result<ReferenceObject, Error> {
+    pub(super) fn parse_reference_object(value: Value) -> Result<ReferenceObject, Error> {
         let reference: String = fetch_hash_string(value, "reference")?;
         let status: String = fetch_hash_string(value, "status")?;
         Ok(ReferenceObject {

@@ -14,6 +14,17 @@ module AppBridge
       raise InternalError, "Incompatible WASM file version"
     end
 
+    # Returns [status, serialized JSON Schema or nil].
+    def schema_result(kind, direction, key:, connection: nil, **context)
+      raise ArgumentError, "Unknown schema direction" unless %i[input output].include?(direction)
+
+      case kind
+      when :action then action_schema_result(direction, key, connection, **context)
+      when :trigger then trigger_schema_result(direction, key, connection, **context)
+      else raise ArgumentError, "Unknown definition kind"
+      end
+    end
+
     def fetch_events(context)
       response = request_events_with_timeout(context)
 
@@ -50,6 +61,34 @@ module AppBridge
     end
 
     private
+
+    def action_schema_result(direction, key, connection, input: "{}", reference_object: nil)
+      if wit_version == "6.0.0"
+        return _action_schema_result(direction == :output, key, connection, input,
+                                     reference_object)
+      end
+      legacy_schema(connection) do |credential|
+        context = ActionContext.new(key, credential, input, reference_object)
+        public_send("action_#{direction}_schema", context)
+      end
+    end
+
+    def trigger_schema_result(direction, key, connection, input: "{}", store: "")
+      return _trigger_schema_result(direction == :output, key, connection, input, store) if wit_version == "6.0.0"
+
+      legacy_schema(connection) do |credential|
+        context = TriggerContext.new(key, credential, store, input)
+        public_send("trigger_#{direction}_schema", context)
+      end
+    end
+
+    def legacy_schema(connection)
+      ["complete", yield(connection || Connection.new("", "", "{}"))]
+    rescue AppBridge::Error, RuntimeError
+      raise if connection
+
+      ["connection_required", nil]
+    end
 
     def validate_number_of_events!(events)
       return if events.size <= 100

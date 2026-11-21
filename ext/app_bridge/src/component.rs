@@ -48,6 +48,12 @@ pub mod v5 {
         world: "bridge",
     });
 }
+pub mod v6 {
+    wasmtime::component::bindgen!({
+        path: "./wit/v6",
+        world: "bridge",
+    });
+}
 
 // ============================================================================
 // Version conversion macro - generates From impls for a version module
@@ -189,6 +195,14 @@ impl From<v5::standout::app::types::ReferenceObject> for ReferenceObject {
         }
     }
 }
+impl From<v6::standout::app::types::ReferenceObject> for ReferenceObject {
+    fn from(r: v6::standout::app::types::ReferenceObject) -> Self {
+        Self {
+            reference: r.reference,
+            status: r.status,
+        }
+    }
+}
 
 impl From<&ReferenceObject> for v4_1::standout::app::types::ReferenceObject {
     fn from(r: &ReferenceObject) -> Self {
@@ -204,6 +218,32 @@ impl From<&ReferenceObject> for v5::standout::app::types::ReferenceObject {
         Self {
             reference: r.reference.clone(),
             status: r.status.clone(),
+        }
+    }
+}
+impl From<&ReferenceObject> for v6::standout::app::types::ReferenceObject {
+    fn from(r: &ReferenceObject) -> Self {
+        Self {
+            reference: r.reference.clone(),
+            status: r.status.clone(),
+        }
+    }
+}
+
+impl From<&ActionContext> for v6::standout::app::types::ActionSchemaContext {
+    fn from(ctx: &ActionContext) -> Self {
+        Self {
+            action_id: ctx.action_id.clone(), connection: Some((&ctx.connection).into()),
+            serialized_input: ctx.serialized_input.clone(), reference_object: ctx.reference_object.as_ref().map(Into::into),
+        }
+    }
+}
+
+impl From<&TriggerContext> for v6::standout::app::types::TriggerSchemaContext {
+    fn from(ctx: &TriggerContext) -> Self {
+        Self {
+            trigger_id: ctx.trigger_id.clone(), connection: Some((&ctx.connection).into()),
+            serialized_input: ctx.serialized_input.clone(), store: ctx.store.clone(),
         }
     }
 }
@@ -231,6 +271,13 @@ impl_error_code_conversion!(
 impl_conversions!(v5);
 impl_app_error_conversion!(v5);
 impl_action_context_conversion_retry!(v5);
+impl_error_code_conversion!(
+    v6,
+    V::RetryWithReference(r) => Self::RetryWithReference(r.into()),
+);
+impl_conversions!(v6);
+impl_app_error_conversion!(v6);
+impl_action_context_conversion_retry!(v6);
 
 // ============================================================================
 // BridgeWrapper - unified interface for all component versions
@@ -243,6 +290,7 @@ pub enum BridgeWrapper {
     V4(v4::Bridge),
     V4_1(v4_1::Bridge),
     V5(v5::Bridge),
+    V6(v6::Bridge),
 }
 
 impl BridgeWrapper {
@@ -253,16 +301,32 @@ impl BridgeWrapper {
             BridgeWrapper::V4(_) => "4.0.0",
             BridgeWrapper::V4_1(_) => "4.1.0",
             BridgeWrapper::V5(_) => "5.0.0",
+            BridgeWrapper::V6(_) => "6.0.0",
         }
     }
 
     pub fn connections_supported(&self) -> bool {
-        matches!(self, BridgeWrapper::V5(_))
+        matches!(self, BridgeWrapper::V5(_) | BridgeWrapper::V6(_))
     }
 }
 
 /// Macro to implement a bridge method that works across all versions.
 /// Each version's result is converted to canonical types.
+macro_rules! v6_schema_or_run {
+    ($b:ident, $store:ident, $ctx:ident, $interface:ident, $method:ident, runtime) => {
+        $b.$interface().$method($store, &$ctx.into())?.map(Into::into).map_err(Into::into)
+    };
+    ($b:ident, $store:ident, $ctx:ident, $interface:ident, $method:ident, schema) => {
+        $b.$interface().$method($store, &$ctx.into())?.map_err(AppError::from).and_then(|response| {
+            use v6::standout::app::types::SchemaResponse;
+            match response {
+                SchemaResponse::Complete(json) | SchemaResponse::Partial(json) => Ok(json),
+                SchemaResponse::ConnectionRequired => Err(AppError::new(ErrorCode::Misconfigured, "Connection is required")),
+            }
+        })
+    };
+}
+
 macro_rules! bridge_method {
     // Simple no-arg method (e.g., trigger_ids, action_ids)
     (fn $name:ident() -> Result<$ok_type:ty> via $interface:ident . $method:ident) => {
@@ -284,11 +348,15 @@ macro_rules! bridge_method {
                     let r = b.$interface().$method(store)?;
                     Ok(r.map_err(Into::into))
                 }
+                BridgeWrapper::V6(b) => {
+                    let r = b.$interface().$method(store)?;
+                    Ok(r.map_err(Into::into))
+                }
             }
         }
     };
     // Method with TriggerContext
-    (fn $name:ident(&TriggerContext) -> Result<$ok_type:ty> via $interface:ident . $method:ident) => {
+    (fn $name:ident(&TriggerContext) -> Result<$ok_type:ty> via $interface:ident . $method:ident, $mode:ident) => {
         pub fn $name(&self, store: &mut Store<AppState>, ctx: &TriggerContext) -> Result<std::result::Result<$ok_type, AppError>> {
             match self {
                 BridgeWrapper::V3(b) => {
@@ -307,11 +375,14 @@ macro_rules! bridge_method {
                     let r = b.$interface().$method(store, &ctx.into())?;
                     Ok(r.map(Into::into).map_err(Into::into))
                 }
+                BridgeWrapper::V6(b) => {
+                    Ok(v6_schema_or_run!(b, store, ctx, $interface, $method, $mode))
+                }
             }
         }
     };
     // Method with ActionContext
-    (fn $name:ident(&ActionContext) -> Result<$ok_type:ty> via $interface:ident . $method:ident) => {
+    (fn $name:ident(&ActionContext) -> Result<$ok_type:ty> via $interface:ident . $method:ident, $mode:ident) => {
         pub fn $name(&self, store: &mut Store<AppState>, ctx: &ActionContext) -> Result<std::result::Result<$ok_type, AppError>> {
             match self {
                 BridgeWrapper::V3(b) => {
@@ -330,6 +401,9 @@ macro_rules! bridge_method {
                     let r = b.$interface().$method(store, &ctx.into())?;
                     Ok(r.map(Into::into).map_err(Into::into))
                 }
+                BridgeWrapper::V6(b) => {
+                    Ok(v6_schema_or_run!(b, store, ctx, $interface, $method, $mode))
+                }
             }
         }
     };
@@ -338,15 +412,15 @@ macro_rules! bridge_method {
 impl BridgeWrapper {
     // Trigger methods
     bridge_method!(fn call_trigger_ids() -> Result<Vec<String>> via standout_app_triggers . call_trigger_ids);
-    bridge_method!(fn call_trigger_input_schema(&TriggerContext) -> Result<String> via standout_app_triggers . call_input_schema);
-    bridge_method!(fn call_trigger_output_schema(&TriggerContext) -> Result<String> via standout_app_triggers . call_output_schema);
-    bridge_method!(fn call_fetch_events(&TriggerContext) -> Result<TriggerResponse> via standout_app_triggers . call_fetch_events);
+    bridge_method!(fn call_trigger_input_schema(&TriggerContext) -> Result<String> via standout_app_triggers . call_input_schema, schema);
+    bridge_method!(fn call_trigger_output_schema(&TriggerContext) -> Result<String> via standout_app_triggers . call_output_schema, schema);
+    bridge_method!(fn call_fetch_events(&TriggerContext) -> Result<TriggerResponse> via standout_app_triggers . call_fetch_events, runtime);
 
     // Action methods
     bridge_method!(fn call_action_ids() -> Result<Vec<String>> via standout_app_actions . call_action_ids);
-    bridge_method!(fn call_action_input_schema(&ActionContext) -> Result<String> via standout_app_actions . call_input_schema);
-    bridge_method!(fn call_action_output_schema(&ActionContext) -> Result<String> via standout_app_actions . call_output_schema);
-    bridge_method!(fn call_execute(&ActionContext) -> Result<ActionResponse> via standout_app_actions . call_execute);
+    bridge_method!(fn call_action_input_schema(&ActionContext) -> Result<String> via standout_app_actions . call_input_schema, schema);
+    bridge_method!(fn call_action_output_schema(&ActionContext) -> Result<String> via standout_app_actions . call_output_schema, schema);
+    bridge_method!(fn call_execute(&ActionContext) -> Result<ActionResponse> via standout_app_actions . call_execute, runtime);
 
     pub fn call_connection_config(
         &self,
@@ -354,6 +428,9 @@ impl BridgeWrapper {
     ) -> Result<String> {
         match self {
             BridgeWrapper::V5(b) => {
+                b.standout_app_connections().call_connection_config(store)
+            }
+            BridgeWrapper::V6(b) => {
                 b.standout_app_connections().call_connection_config(store)
             }
             _ => unreachable!("call_connection_config requires connections_supported"),
@@ -395,6 +472,11 @@ pub fn build_linker(engine: &Engine) -> Result<Linker<AppState>> {
     v5::standout::app::environment::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
     v5::standout::app::file::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
 
+    // v6: http + environment + file
+    v6::standout::app::http::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
+    v6::standout::app::environment::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
+    v6::standout::app::file::add_to_linker::<AppState, HasSelf<AppState>>(&mut linker, |s| s)?;
+
     Ok(linker)
 }
 
@@ -421,7 +503,11 @@ pub fn app(
     let component = Component::from_file(&engine, &file_path)?;
 
     // Try versions newest-first. When adding vN, insert at the top.
-    // v5 (current - has connections interface)
+    if let Ok(instance) = v6::Bridge::instantiate(&mut *store, &component, &linker) {
+        return Ok(BridgeWrapper::V6(instance));
+    }
+
+    // v5 (legacy - has connections interface)
     if let Ok(instance) = v5::Bridge::instantiate(&mut *store, &component, &linker) {
         return Ok(BridgeWrapper::V5(instance));
     }
@@ -442,6 +528,6 @@ pub fn app(
     }
 
     Err(wasmtime::Error::msg(
-        "Failed to instantiate component: no compatible WIT version found (tried v5, v4.1, v4, v3)",
+        "Failed to instantiate component: no compatible WIT version found (tried v6, v5, v4.1, v4, v3)",
     ))
 }
