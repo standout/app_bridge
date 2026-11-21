@@ -75,6 +75,7 @@ module AppBridge
 
     def trigger_schema_result(direction, key, connection, input: "{}", store: "")
       return _trigger_schema_result(direction == :output, key, connection, input, store) if wit_version == "6.0.0"
+
       legacy_schema(connection) do |credential|
         context = TriggerContext.new(key, credential, store, input)
         public_send("trigger_#{direction}_schema", context)
