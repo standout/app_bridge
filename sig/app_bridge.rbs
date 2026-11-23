@@ -9,7 +9,8 @@ module AppBridge
 
     def actions: () -> Array[String]
 
-    def schema_result: (:action | :trigger, :input | :output, key: String, ?connection: Connection?, ?input: String, ?store: String, ?reference_object: Hash[String, String]?) -> [String, String?]
+    def schema_result: (:action, :input | :output, key: String, ?connection: Connection?, ?input: String, ?reference_object: Hash[String, String]?) -> [String, String?]
+                     | (:trigger, :input | :output, key: String, ?connection: Connection?, ?input: String, ?store: String) -> [String, String?]
 
     def fetch_events: (TriggerContext) -> TriggerResponse
 
