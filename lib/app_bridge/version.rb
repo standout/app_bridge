@@ -4,5 +4,5 @@
 # ext/app_bridge/Cargo.toml file to keep them in sync.
 
 module AppBridge
-  VERSION = "6.0.0"
+  VERSION = "6.1.0"
 end
